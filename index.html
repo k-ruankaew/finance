@@ -220,7 +220,7 @@ const LS='acctsys-docs-v1',LSC='acctsys-cfg-v1';
 const deptList=()=>String(CFG.depts||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
 function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(DOCS))}catch(e){}}
 const wq={};
-function write(id,fn){wq[id]=(wq[id]||Promise.resolve()).then(fn).catch(e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'พื้นที่ฐานข้อมูลเต็ม ลบเอกสารเก่าที่ไม่ใช้ก่อน':e&&(e.code==='invalid_argument'||e.code==='permission-denied')?'บันทึกไม่ได้ — บัญชีนี้มีสิทธิ์ดูอย่างเดียว ให้เจ้าของหน้าแชร์เป็น Contributor':'บันทึกไม่สำเร็จ: '+(e&&e.message||e));throw e});return wq[id]}
+function write(id,fn){wq[id]=(wq[id]||Promise.resolve()).then(fn).catch(e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'พื้นที่ฐานข้อมูลเต็ม ลบเอกสารเก่าที่ไม่ใช้ก่อน':e&&(e.code==='invalid_argument'||e.code==='permission-denied')?'บันทึกไม่ได้ — บัญชีนี้มีสิทธิ์ดูอย่างเดียว ให้เจ้าของหน้าแชร์เป็น Editor':'บันทึกไม่สำเร็จ: '+(e&&e.message||e));throw e});return wq[id]}
 async function saveDoc(doc){
   doc.updatedAt=new Date().toISOString();const body=clone(doc);delete NEW[doc.id];
   const i=DOCS.findIndex(x=>x.id===doc.id);if(i<0)DOCS.push(body);else DOCS[i]=body;
@@ -507,7 +507,7 @@ function vSetup(){const ro=!CAN_CFG;app.innerHTML=`<h1>ตั้งค่าบ�
   <div class="sec" style="max-width:760px"><h3>อีเมลผู้อนุมัติ</h3><p class="mut small" style="margin:-4px 0 12px">คนที่มีอีเมลตรงกับช่องไหน จะกดอนุมัติขั้นนั้นได้ และใช้เป็นผู้รับอีเมลขออนุมัติ · ใส่ได้หลายอีเมลคั่นด้วยจุลภาค · ต้องเป็นอีเมลเดียวกับที่ใช้ล็อกอิน Claude</p><div class="flds">
    ${roles().map((r,i)=>`<div class="fld"><span>${esc(r)}</span><input type="email" multiple data-role="${i}" value="${esc((CFG.emails||{})[r]||'')}" placeholder="name@company.com" ${ro?'disabled':''}></div>`).join('')}
    <div class="fld full"><span>ลิงก์ของระบบนี้ (ใส่ในอีเมล)</span><input id="c_appUrl" value="${esc(CFG.appUrl)}" ${ro?'disabled':''}></div></div></div>
-  <div class="sec" style="max-width:760px"><h3>สิทธิ์การใช้งาน</h3><p class="small" style="margin:0">ทุกคนต้องได้สิทธิ์ <b>Contributor</b> ขึ้นไปจากปุ่ม Share จึงจะสร้าง ส่ง และอนุมัติเอกสารได้ (Viewer ดูได้อย่างเดียว) · ผู้อนุมัติ = คนที่มีอีเมลตามตารางด้านบน หรือคนที่มีสิทธิ์ Editor / Owner (อนุมัติได้ทุกขั้น) · คุณ: <b>${esc(ME_EMAIL||'ไม่ทราบอีเมล')}</b> · <b>${!CAN_WRITE?'ดูอย่างเดียว':CAN_APPROVE?'ผู้ดูแล — อนุมัติได้ทุกขั้น':'ผู้ใช้ทั่วไป'}</b>${LOCAL?' · <span style="color:var(--amber)">โหมดออฟไลน์: ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น</span>':''}</p></div>`;
+  <div class="sec" style="max-width:760px"><h3>สิทธิ์การใช้งาน</h3><p class="small" style="margin:0">ทุกคนต้องได้สิทธิ์แก้ไข (Editor หรือ Contributor) จากปุ่ม Share จึงจะสร้าง ส่ง และอนุมัติเอกสารได้ (Viewer ดูได้อย่างเดียว) · ผู้อนุมัติ = คนที่มีอีเมลตามตารางด้านบน · เจ้าของหน้าอนุมัติได้ทุกขั้นและแก้ตั้งค่าได้คนเดียว · คุณ: <b>${esc(ME_EMAIL||'ไม่ทราบอีเมล')}</b> · <b>${!CAN_WRITE?'ดูอย่างเดียว':CAN_APPROVE?'ผู้ดูแล — อนุมัติได้ทุกขั้น':'ผู้ใช้ทั่วไป'}</b>${LOCAL?' · <span style="color:var(--amber)">โหมดออฟไลน์: ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น</span>':''}</p></div>`;
   const s=$('#c_save');if(s)s.onclick=async()=>{['name','addr','tax','vat','perDiem','fuel','depts','appUrl','admins','domain'].forEach(k=>{const el=$('#c_'+k);if(el)CFG[k]=el.value.trim()});const rs=roles(),em={};$$('[data-role]').forEach(i=>{if(i.value.trim())em[rs[+i.dataset.role]]=i.value.trim()});CFG.emails=em;await saveCfg();applyCfg();toast('บันทึกการตั้งค่าแล้ว')}}
 function applyCfg(){$('#coName').textContent=CFG.name||'ใบขอซื้อ · เบิกจ่าย · ทดรองจ่าย · โครงการ'}
 
@@ -532,7 +532,7 @@ function actionsHTML(doc,ed){const t=T[doc.type],b=[];
   if(ed){b.push(`<button class="btn pri" id="a_submit">${doc.status==='rejected'?'ส่งอนุมัติอีกครั้ง':'ส่งอนุมัติ'}</button>`,`<button class="btn" id="a_save">บันทึกร่าง</button>`)}
   if(canApproveDoc(doc)){const s=t.steps[doc.step||0];b.push(`<button class="btn pri" id="a_ok">${esc(s.verb||'อนุมัติ')} — ${esc(s.n.split(' — ')[0])}</button>`,`<button class="btn danger" id="a_no">ไม่อนุมัติ / ตีกลับ</button>`)}
   if(doc.status==='pending'&&isMine(doc)&&!doc.step)b.push(`<button class="btn" id="a_back">ดึงกลับมาแก้ไข</button>`);
-  if(doc.status==='pending'&&!canApproveDoc(doc)){const em=stepEmails(doc);b.push(`<p class="small mut" style="margin:0">${!CAN_WRITE?'คุณมีสิทธิ์ดูอย่างเดียว จึงกดอนุมัติไม่ได้ — ให้เจ้าของหน้าแชร์เป็น Contributor ขึ้นไป':em.length?'ผู้อนุมัติขั้นนี้: '+esc(em.join(', '))+(ME_EMAIL?' (คุณ: '+esc(ME_EMAIL)+')':''):'ขั้นนี้ยังไม่ได้กำหนดอีเมลผู้อนุมัติ — ตั้งได้ที่หน้า “ตั้งค่า”'}</p>`)}
+  if(doc.status==='pending'&&!canApproveDoc(doc)){const em=stepEmails(doc);b.push(`<p class="small mut" style="margin:0">${!CAN_WRITE?'คุณมีสิทธิ์ดูอย่างเดียว จึงกดอนุมัติไม่ได้ — ให้เจ้าของหน้าแชร์เป็น Editor ขึ้นไป':em.length?'ผู้อนุมัติขั้นนี้: '+esc(em.join(', '))+(ME_EMAIL?' (คุณ: '+esc(ME_EMAIL)+')':''):'ขั้นนี้ยังไม่ได้กำหนดอีเมลผู้อนุมัติ — ตั้งได้ที่หน้า “ตั้งค่า”'}</p>`)}
   if(doc.status==='pending')b.push(`<button class="btn" id="a_mail">✉ ส่งอีเมลขออนุมัติ</button>`);
   if(doc.status==='approved'||doc.status==='rejected')b.push(`<button class="btn" id="a_mail2">✉ แจ้งผลทางอีเมล</button>`);
   if(DOCS.some(x=>x.id===doc.id)||doc.status!=='draft')b.push(`<button class="btn" id="a_print">ดาวน์โหลดแบบฟอร์ม (Excel / พิมพ์)</button>`);
@@ -844,7 +844,7 @@ const FB_V='10.14.1';
 
 const loadJs=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('load '+src));document.head.appendChild(s)});
 function connectDb(db){
-  DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Contributor</div>';render();
+  DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Editor</div>';render();
   const tm=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">ยังเชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน</div>';LOADED=true;if(!EDITING)render()},10000);
   db.doc('config/company').onSnapshot(s=>{if(s.exists){Object.assign(CFG,s.data());if(MODE==='firebase')fbRoles();applyCfg();if(!EDITING&&(route()==='setup'||route()==='home'))render()}},()=>{});
   db.collection('docs').onSnapshot(s=>{if(!s.metadata.fromCache){clearTimeout(tm);if(CAN_WRITE)$('#banner').innerHTML=''}onDocs(s.docs.map(x=>({...x.data(),id:x.id})))},e=>{clearTimeout(tm);LOADED=true;$('#banner').innerHTML='<div class="banner">โหลดข้อมูลไม่สำเร็จ ('+esc(e&&e.code)+')'+(e&&e.code==='permission-denied'?' — อีเมลนี้ยังไม่ได้รับอนุญาตให้ใช้ระบบ':'')+'</div>';render()})}
@@ -866,7 +866,7 @@ async function bootFirebase(){
   if(FB_CONFIG&&!(typeof claude!=='undefined'&&claude&&claude.use)){try{await bootFirebase()}catch(e){console.error(e);$('#banner').innerHTML='<div class="banner">เชื่อมต่อ Firebase ไม่ได้: '+esc(e.message||e)+'</div>'}return}
   let db=null,user=null;if(typeof claude!=='undefined'&&claude&&claude.use){try{[db,user,DLS]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('downloads')])}catch(e){}}
   USER=user;
-  if(user){try{ME=await user.id()}catch(e){}try{const ce=await user.canEdit(),ow=await user.isOwner();CAN_APPROVE=!!(ce||ow);CAN_CFG=CAN_APPROVE}catch(e){}
+  if(user){try{ME=await user.id()}catch(e){}try{const ow=await user.isOwner();CAN_APPROVE=!!ow;CAN_CFG=!!ow}catch(e){}
     try{const me=await user.me();if(me&&ME)PROF[ME]=me.name||'';if(me&&me.email)ME_EMAIL=me.email}catch(e){}
     try{const w=await user.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
   if(!db){$('#banner').innerHTML='<div class="banner">โหมดเครื่องเดียว — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น คนอื่นจะไม่เห็นเอกสารของคุณ</div>';render();return}
