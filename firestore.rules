@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function cfg() {
+      return exists(/databases/$(database)/documents/config/company)
+        ? get(/databases/$(database)/documents/config/company).data : {};
+    }
+    function email() { return request.auth.token.email.lower(); }
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    // ถ้าตั้ง domain ไว้ในหน้าตั้งค่า จะรับเฉพาะอีเมลโดเมนนั้น
+    function member() {
+      return signedIn() && (cfg().get('domain', '') == '' || email().matches('.*@' + cfg().get('domain', '').lower()));
+    }
+    function adminList() { return cfg().get('admins', '').lower().split('[,;\\s]+'); }
+    // ถ้ายังไม่ได้ตั้งผู้ดูแล ทุกคนที่เป็นสมาชิกแก้ตั้งค่าได้ (ใช้ตอนเริ่มต้น)
+    function isAdmin() { return member() && (cfg().get('admins', '') == '' || email() in adminList()); }
+
+    match /config/company { allow read: if member(); allow write: if isAdmin(); }
+    match /docs/{id} { allow read, write: if member(); }
+    match /users/{uid} { allow read: if member(); allow write: if member() && request.auth.uid == uid; }
+  }
+}

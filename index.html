@@ -211,7 +211,7 @@ function ask(msg,okLabel='ยืนยัน',danger){return new Promise(res=>{c
 
 /* ---------- state ---------- */
 let CAN_WRITE=true;
-let DB=null,USER=null,ME=null,CAN_APPROVE=true,CAN_CFG=true,LOCAL=true,LOADED=false,DLS=null;
+let DB=null,USER=null,ME=null,MODE='local',CAN_APPROVE=true,CAN_CFG=true,LOCAL=true,LOADED=false,DLS=null;
 let DOCS=[];const NEW={};let EDIT=null,EDITING=false,DIRTY=false,saveT=null,stale=false;
 const PROF={};
 const CFG={name:'บริษัท ........................ จำกัด',addr:'',tax:'',vat:7,perDiem:300,fuel:6,depts:'IT, บัญชี, จัดซื้อ, ขาย, การตลาด, ปฏิบัติการ, บุคคล',appUrl:'https://claude.ai/artifact/7jsEdmfrm9iSUtmdq1wdHQ',emails:{}};
@@ -220,7 +220,7 @@ const LS='acctsys-docs-v1',LSC='acctsys-cfg-v1';
 const deptList=()=>String(CFG.depts||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
 function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(DOCS))}catch(e){}}
 const wq={};
-function write(id,fn){wq[id]=(wq[id]||Promise.resolve()).then(fn).catch(e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'พื้นที่ฐานข้อมูลเต็ม ลบเอกสารเก่าที่ไม่ใช้ก่อน':e&&e.code==='invalid_argument'?'บันทึกไม่ได้ — บัญชีนี้มีสิทธิ์ดูอย่างเดียว ให้เจ้าของหน้าแชร์เป็น Contributor':'บันทึกไม่สำเร็จ: '+(e&&e.message||e));throw e});return wq[id]}
+function write(id,fn){wq[id]=(wq[id]||Promise.resolve()).then(fn).catch(e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'พื้นที่ฐานข้อมูลเต็ม ลบเอกสารเก่าที่ไม่ใช้ก่อน':e&&(e.code==='invalid_argument'||e.code==='permission-denied')?'บันทึกไม่ได้ — บัญชีนี้มีสิทธิ์ดูอย่างเดียว ให้เจ้าของหน้าแชร์เป็น Contributor':'บันทึกไม่สำเร็จ: '+(e&&e.message||e));throw e});return wq[id]}
 async function saveDoc(doc){
   doc.updatedAt=new Date().toISOString();const body=clone(doc);delete NEW[doc.id];
   const i=DOCS.findIndex(x=>x.id===doc.id);if(i<0)DOCS.push(body);else DOCS[i]=body;
@@ -500,13 +500,15 @@ function vSetup(){const ro=!CAN_CFG;app.innerHTML=`<h1>ตั้งค่าบ�
    <div class="fld"><span>อัตรา VAT (%)</span><input id="c_vat" value="${esc(CFG.vat)}" inputmode="decimal" ${ro?'disabled':''}></div>
    <div class="fld"><span>เบี้ยเลี้ยงต่อวัน (บาท)</span><input id="c_perDiem" value="${esc(CFG.perDiem)}" inputmode="decimal" ${ro?'disabled':''}></div>
    <div class="fld"><span>ค่าน้ำมัน (บาท/กม.)</span><input id="c_fuel" value="${esc(CFG.fuel)}" inputmode="decimal" ${ro?'disabled':''}></div>
+   ${MODE==='firebase'?`<div class="fld full"><span>ผู้ดูแลระบบ (อีเมล คั่นด้วยจุลภาค)</span><input id="c_admins" value="${esc(CFG.admins||'')}" ${ro?'disabled':''}><small>แก้ตั้งค่าและอนุมัติได้ทุกขั้น · ถ้าว่าง ทุกคนเป็นผู้ดูแล — ใส่อีเมลตัวเองก่อนแล้วบันทึก</small></div>
+   <div class="fld full"><span>อนุญาตเฉพาะอีเมลโดเมน</span><input id="c_domain" value="${esc(CFG.domain||'')}" placeholder="เช่น ai-ai-ai.co.th" ${ro?'disabled':''}><small>ว่าง = ทุกบัญชี Google ที่ล็อกอินใช้ได้</small></div>`:''}
    <div class="fld full"><span>รายชื่อแผนก (คั่นด้วยจุลภาค)</span><input id="c_depts" value="${esc(CFG.depts)}" ${ro?'disabled':''}><small>ตัวย่อภาษาอังกฤษจะใช้ในเลขที่ PR เช่น IT → PR-IT-202611-0001</small></div>
   </div>${ro?'':'<div class="row" style="margin-top:16px"><button class="btn pri" id="c_save">บันทึกการตั้งค่า</button></div>'}</div>
   <div class="sec" style="max-width:760px"><h3>อีเมลผู้อนุมัติ</h3><p class="mut small" style="margin:-4px 0 12px">คนที่มีอีเมลตรงกับช่องไหน จะกดอนุมัติขั้นนั้นได้ และใช้เป็นผู้รับอีเมลขออนุมัติ · ใส่ได้หลายอีเมลคั่นด้วยจุลภาค · ต้องเป็นอีเมลเดียวกับที่ใช้ล็อกอิน Claude</p><div class="flds">
    ${roles().map((r,i)=>`<div class="fld"><span>${esc(r)}</span><input type="email" multiple data-role="${i}" value="${esc((CFG.emails||{})[r]||'')}" placeholder="name@company.com" ${ro?'disabled':''}></div>`).join('')}
    <div class="fld full"><span>ลิงก์ของระบบนี้ (ใส่ในอีเมล)</span><input id="c_appUrl" value="${esc(CFG.appUrl)}" ${ro?'disabled':''}></div></div></div>
   <div class="sec" style="max-width:760px"><h3>สิทธิ์การใช้งาน</h3><p class="small" style="margin:0">ทุกคนต้องได้สิทธิ์ <b>Contributor</b> ขึ้นไปจากปุ่ม Share จึงจะสร้าง ส่ง และอนุมัติเอกสารได้ (Viewer ดูได้อย่างเดียว) · ผู้อนุมัติ = คนที่มีอีเมลตามตารางด้านบน หรือคนที่มีสิทธิ์ Editor / Owner (อนุมัติได้ทุกขั้น) · คุณ: <b>${esc(ME_EMAIL||'ไม่ทราบอีเมล')}</b> · <b>${!CAN_WRITE?'ดูอย่างเดียว':CAN_APPROVE?'ผู้ดูแล — อนุมัติได้ทุกขั้น':'ผู้ใช้ทั่วไป'}</b>${LOCAL?' · <span style="color:var(--amber)">โหมดออฟไลน์: ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น</span>':''}</p></div>`;
-  const s=$('#c_save');if(s)s.onclick=async()=>{['name','addr','tax','vat','perDiem','fuel','depts','appUrl'].forEach(k=>CFG[k]=$('#c_'+k).value.trim());const rs=roles(),em={};$$('[data-role]').forEach(i=>{if(i.value.trim())em[rs[+i.dataset.role]]=i.value.trim()});CFG.emails=em;await saveCfg();applyCfg();toast('บันทึกการตั้งค่าแล้ว')}}
+  const s=$('#c_save');if(s)s.onclick=async()=>{['name','addr','tax','vat','perDiem','fuel','depts','appUrl','admins','domain'].forEach(k=>{const el=$('#c_'+k);if(el)CFG[k]=el.value.trim()});const rs=roles(),em={};$$('[data-role]').forEach(i=>{if(i.value.trim())em[rs[+i.dataset.role]]=i.value.trim()});CFG.emails=em;await saveCfg();applyCfg();toast('บันทึกการตั้งค่าแล้ว')}}
 function applyCfg(){$('#coName').textContent=CFG.name||'ใบขอซื้อ · เบิกจ่าย · ทดรองจ่าย · โครงการ'}
 
 /* ---------- document view ---------- */
@@ -590,7 +592,7 @@ function rejectDlg(doc){const m=modal(`<h3>ไม่อนุมัติ / ต�
 
 /* ---------- email ---------- */
 const roles=()=>[...new Set(ORDER.flatMap(k=>T[k].steps.map(s=>s.n)))];
-const docLink=doc=>((LOCAL&&/^https?:/.test(location.protocol))?location.href:(CFG.appUrl||'')).replace(/#.*$/,'')+'#doc-'+doc.id;
+const docLink=doc=>((MODE!=='claude'&&/^https?:/.test(location.protocol))?location.href:(CFG.appUrl||'')).replace(/#.*$/,'')+'#doc-'+doc.id;
 function itemLines(doc){const d=doc.data||{};const L={PR:()=>filled(d.items,['desc','qty','price']).map(r=>`${r.desc||''}${r.spec?' ('+r.spec+')':''} × ${r.qty||0} ${r.unit||''} = ${money(num(r.qty)*num(r.price))}`),
   EXP:()=>filled(d.items,['detail','net','receipt']).map(r=>`${thDate(r.payDate,1)} ${r.payee||''} ${r.detail||''} = ${money(num(r.net)+num(r.vat))}`),ADV:()=>filled(d.items,['desc','amount']).map(r=>`${r.desc||''} = ${money(r.amount)}`),
   TRV:()=>{const c=T.TRV.calc(d);return [`ค่าพาหนะ ${money(c.fare)}`,`เบี้ยเลี้ยง ${c.pdd} วัน ${money(c.perDiem)}`,c.fuel?`ค่าน้ำมัน ${money(c.fuel)}`:'',c.toll?`ทางด่วน ${money(c.toll)}`:'',c.other?`อื่น ๆ ${money(c.other)}`:''].filter(Boolean)},
@@ -836,17 +838,39 @@ window.addEventListener('hashchange',()=>{if(DIRTY&&EDIT){clearTimeout(saveT);sa
 function onDocs(list){DOCS=list;LOADED=true;if(EDITING){stale=true;return}render()}
 try{DOCS=JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){DOCS=[]}try{Object.assign(CFG,JSON.parse(localStorage.getItem(LSC)||'{}'))}catch(e){}
 LOADED=true;applyCfg();render();
+/* Firebase config: paste firebaseConfig here to run on GitHub Pages with a shared database */
+const FB_CONFIG=null;
+const FB_V='10.14.1';
+
+const loadJs=src=>new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('load '+src));document.head.appendChild(s)});
+function connectDb(db){
+  DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Contributor</div>';render();
+  const tm=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">ยังเชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน</div>';LOADED=true;if(!EDITING)render()},10000);
+  db.doc('config/company').onSnapshot(s=>{if(s.exists){Object.assign(CFG,s.data());if(MODE==='firebase')fbRoles();applyCfg();if(!EDITING&&(route()==='setup'||route()==='home'))render()}},()=>{});
+  db.collection('docs').onSnapshot(s=>{if(!s.metadata.fromCache){clearTimeout(tm);if(CAN_WRITE)$('#banner').innerHTML=''}onDocs(s.docs.map(x=>({...x.data(),id:x.id})))},e=>{clearTimeout(tm);LOADED=true;$('#banner').innerHTML='<div class="banner">โหลดข้อมูลไม่สำเร็จ ('+esc(e&&e.code)+')'+(e&&e.code==='permission-denied'?' — อีเมลนี้ยังไม่ได้รับอนุญาตให้ใช้ระบบ':'')+'</div>';render()})}
+function fbRoles(){const ad=String(CFG.admins||'').toLowerCase().split(/[,;\s]+/).filter(Boolean);CAN_APPROVE=!ad.length||ad.includes(String(ME_EMAIL).toLowerCase());CAN_CFG=CAN_APPROVE}
+async function bootFirebase(){
+  MODE='firebase';
+  for(const m of ['app','auth','firestore'])await loadJs(`https://www.gstatic.com/firebasejs/${FB_V}/firebase-${m}-compat.js`);
+  firebase.initializeApp(FB_CONFIG);const auth=firebase.auth(),fs=firebase.firestore();
+  const u=await new Promise(r=>{const un=auth.onAuthStateChanged(x=>{un();r(x)})});
+  if(!u){$('#nav').hidden=true;app.innerHTML=`<div style="max-width:420px;margin:8vh auto;text-align:center"><h1>เข้าสู่ระบบ</h1><p class="mut">ใช้บัญชี Google ของบริษัท</p><button class="btn pri" id="gsign" style="margin-top:18px;width:100%">เข้าสู่ระบบด้วย Google</button><p class="mut small" id="gerr" style="margin-top:12px"></p></div>`;
+    $('#gsign').onclick=async()=>{try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());location.reload()}catch(e){$('#gerr').textContent='เข้าสู่ระบบไม่สำเร็จ: '+(e&&e.code||e)}};return}
+  ME=u.uid;ME_EMAIL=u.email||'';PROF[ME]=u.displayName||ME_EMAIL;
+  try{const ur=fs.collection('users').doc(ME),cur=await ur.get();const want={name:u.displayName||'',email:ME_EMAIL};const have=cur.exists?cur.data():{};if(have.name!==want.name||have.email!==want.email)await ur.set(want)}catch(e){}
+  USER={profiles:async ids=>{const out={};await Promise.all(ids.map(async i=>{try{const d=await fs.collection('users').doc(i).get();if(d.exists)out[i]=d.data()}catch(e){}}));return out}};
+  fbRoles();
+  const who=document.createElement('a');who.href='#';who.textContent='ออกจากระบบ ('+ME_EMAIL+')';who.onclick=async e=>{e.preventDefault();await auth.signOut();location.reload()};$('#nav').appendChild(who);
+  connectDb(fs)}
 (async()=>{
+  if(FB_CONFIG&&!(typeof claude!=='undefined'&&claude&&claude.use)){try{await bootFirebase()}catch(e){console.error(e);$('#banner').innerHTML='<div class="banner">เชื่อมต่อ Firebase ไม่ได้: '+esc(e.message||e)+'</div>'}return}
   let db=null,user=null;if(typeof claude!=='undefined'&&claude&&claude.use){try{[db,user,DLS]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('downloads')])}catch(e){}}
   USER=user;
   if(user){try{ME=await user.id()}catch(e){}try{const ce=await user.canEdit(),ow=await user.isOwner();CAN_APPROVE=!!(ce||ow);CAN_CFG=CAN_APPROVE}catch(e){}
     try{const me=await user.me();if(me&&ME)PROF[ME]=me.name||'';if(me&&me.email)ME_EMAIL=me.email}catch(e){}
     try{const w=await user.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
-  if(!db){$('#banner').innerHTML='<div class="banner">โหมดเครื่องเดียว — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น คนอื่นจะไม่เห็นเอกสารของคุณ (ใช้ร่วมกันทั้งทีมได้เมื่อเปิดผ่าน claude.ai)</div>';render();return}
-  DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Contributor</div>';render();
-  const tm=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">ยังเชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน</div>';LOADED=true;if(!EDITING)render()},10000);
-  db.doc('config/company').onSnapshot(s=>{if(s.exists){Object.assign(CFG,s.data());applyCfg();if(!EDITING&&route()==='setup')render()}},()=>{});
-  db.collection('docs').onSnapshot(s=>{if(!s.metadata.fromCache){clearTimeout(tm);if(CAN_WRITE)$('#banner').innerHTML=''}onDocs(s.docs.map(x=>({...x.data(),id:x.id})))},e=>{clearTimeout(tm);LOADED=true;$('#banner').innerHTML='<div class="banner">โหลดข้อมูลไม่สำเร็จ ('+esc(e&&e.code)+')</div>';render()});
+  if(!db){$('#banner').innerHTML='<div class="banner">โหมดเครื่องเดียว — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น คนอื่นจะไม่เห็นเอกสารของคุณ</div>';render();return}
+  MODE='claude';connectDb(db);
 })();
 }
 </script>
