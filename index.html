@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบเอกสารบัญชี</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap">
+<style id="mainstyle">
+/* VOICE: calm office tool, the company's paperwork made quick — clear, exact, no decoration.
+   IDEA: an in-tray of Thai office forms; status shows as rubber stamps on each paper.
+   PICTURE: the working tray itself — pending papers, budgets, advances — then the form as a sheet of paper.
+   COLOUR and TYPE: white paper + ink, pen-blue for action, stamp-red for reject/overdue; IBM Plex Sans Thai UI, Sarabun for paper.
+   LAYOUT: ink top band with nav; content 1240px; forms one calm column of sections, totals beside the item table. */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#121418);--panel:light-dark(#f4f5f7,#1a1d23);--ink:light-dark(#15171b,#eceef2);--mut:light-dark(#5d636e,#9aa1ad);
+--line:light-dark(#e2e4e9,#2c3039);--blue:light-dark(#2347c5,#8ea8ff);--blueb:light-dark(#e8edfc,#1f2742);--red:light-dark(#c62f2a,#ff7a70);--redb:light-dark(#fdecea,#3a1f1f);
+--top:light-dark(#15171b,#0b0c0f);--amber:light-dark(#9a5b00,#f3b555);--amberb:light-dark(#fff4e0,#3a2c14)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans Thai",system-ui,sans-serif;overflow-x:clip}
+button,input,select,textarea{font:inherit;color:inherit}
+.band{padding:clamp(20px,3vw,40px) max(4vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+pre,.scroll{overflow-x:auto}code{overflow-wrap:anywhere}html{scroll-padding-top:72px}
+header{background:var(--top);color:#fff;padding:0 max(4vw,16px)}
+header .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;min-height:64px}
+.brand{font-weight:700;font-size:18px;line-height:1.2}.brand small{display:block;font-weight:400;font-size:13px;color:#b9bec8}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+nav a{color:#d7dae0;text-decoration:none;padding:10px 14px;border-radius:8px;font-size:15px;min-height:44px;display:flex;align-items:center}
+nav a:hover{background:#ffffff14}nav a.on{background:#fff;color:#15171b;font-weight:600}
+.banner{background:var(--amberb);color:var(--amber);padding:10px max(4vw,16px);font-size:14px}
+h1{font-size:clamp(28px,3.4vw,40px);line-height:1.1;margin:0 0 6px;text-wrap:balance}
+h2{font-size:22px;margin:0 0 12px;line-height:1.25}h3{font-size:17px;margin:0 0 10px}
+.mut{color:var(--mut)}.small{font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--bg);cursor:pointer;font-weight:500;text-decoration:none;color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:var(--mut)}.btn.pri{background:var(--blue);border-color:var(--blue);color:light-dark(#fff,#0d1020)}.btn.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 40%,transparent)}
+.btn.redf{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;gap:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px;margin:18px 0 26px}
+.stat{background:var(--panel);border-radius:14px;padding:16px 18px}
+.stat b{display:block;font-size:clamp(26px,3vw,34px);line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat span{font-size:14px;color:var(--mut)}
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:28px}
+@media(max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+/* tray */
+.tray{display:grid;gap:10px}
+.paper{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;align-items:center;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--bg);text-decoration:none;color:inherit;box-shadow:0 1px 0 var(--line),0 3px 0 -1px var(--bg),0 4px 0 -1px var(--line);transition:transform .15s}
+.paper:hover{transform:translateY(-2px);border-color:var(--mut)}
+.paper .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper .m{font-size:13px;color:var(--mut);grid-column:1}
+.paper .a{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.stamp{display:inline-block;border:2px solid currentColor;border-radius:6px;padding:0 8px;font-size:13px;font-weight:700;line-height:22px;white-space:nowrap;transform:rotate(-2deg)}
+.s-draft{color:var(--mut)}.s-pending{color:var(--blue)}.s-approved{color:light-dark(#fff,#0d1020);background:var(--blue);border-color:var(--blue)}.s-rejected{color:var(--red)}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--mut)}
+/* types */
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px}
+.type{display:flex;flex-direction:column;gap:6px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--bg);cursor:pointer;text-align:left;min-height:140px;position:relative;overflow:hidden}
+.type:hover{border-color:var(--blue)}
+.type .code{font-size:13px;color:var(--mut)}.type b{font-size:17px;line-height:1.3}.type span{font-size:14px;color:var(--mut)}
+.type::after{content:"";position:absolute;right:-18px;top:-18px;width:64px;height:64px;border-radius:50%;border:3px solid var(--blueb)}
+/* bars */
+.bar{height:10px;border-radius:5px;background:var(--panel);overflow:hidden;display:flex}
+.bar i{display:block;height:100%}.bar .c{background:color-mix(in srgb,var(--blue) 45%,transparent)}.bar .s{background:var(--blue)}.bar .o{background:var(--red)}
+.proj{padding:14px 0;border-bottom:1px solid var(--line)}.proj:last-child{border:0}
+.proj .h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+/* table */
+table{border-collapse:collapse;width:100%}
+.list th{text-align:left;font-size:13px;color:var(--mut);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.list td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.list tr[data-href]{cursor:pointer}.list tr[data-href]:hover td{background:var(--panel)}
+.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.filters>*{flex:1 1 180px}
+input,select,textarea{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:16px}
+textarea{min-height:80px;resize:vertical}
+input:disabled,select:disabled,textarea:disabled{background:var(--panel);color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink);border-color:transparent}
+/* form */
+.dochead{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+.dochead .stamp{font-size:15px;line-height:28px;padding:0 12px}
+.sheet{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:28px;align-items:start}
+@media(max-width:1000px){.sheet{grid-template-columns:minmax(0,1fr)}}
+.sec{border:1px solid var(--line);border-radius:14px;padding:18px clamp(14px,2vw,22px);margin-bottom:16px;background:var(--bg)}
+.sec>h3{display:flex;gap:10px;align-items:baseline}.sec>h3 em{font-style:normal;color:var(--blue);font-variant-numeric:tabular-nums}
+.flds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+@media(max-width:640px){.flds{grid-template-columns:minmax(0,1fr)}}
+.fld{display:flex;flex-direction:column;gap:5px}.fld.full{grid-column:1/-1}
+.fld>span{font-size:14px;font-weight:500}.fld>span i{color:var(--red);font-style:normal;margin-left:2px}
+.fld small{color:var(--mut);font-size:13px}
+.fld output{min-height:44px;display:flex;align-items:center;padding:0 12px;background:var(--blueb);border-radius:10px;font-weight:600}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{position:relative}.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{display:flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-size:15px}
+.seg input:checked+span{background:var(--blue);border-color:var(--blue);color:light-dark(#fff,#0d1020)}
+.seg input:focus-visible+span{outline:3px solid var(--blue);outline-offset:2px}
+.seg input:disabled+span{cursor:default}
+.chk{display:flex;flex-direction:column;gap:4px}
+.chk label{display:flex;gap:10px;align-items:center;min-height:36px;cursor:pointer}
+.chk input{width:20px;height:20px;min-height:0;accent-color:var(--blue)}
+.items{font-size:15px}
+.items th{font-size:13px;font-weight:500;color:var(--mut);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.items td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+.items td:first-child{color:var(--mut);padding-top:15px;width:28px;text-align:center}
+.items input,.items select{min-height:40px;padding:6px 8px;font-size:15px}
+.items output{display:block;padding:10px 6px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.items .fixed{padding:10px 6px;display:block;font-weight:500}
+.x{width:40px;height:40px;border-radius:8px;border:0;background:none;color:var(--mut);cursor:pointer;font-size:22px}.x:hover{color:var(--red);background:var(--redb)}
+.vatc{display:flex;gap:4px}.vatc button{border:1px solid var(--line);background:var(--panel);border-radius:8px;font-size:12px;padding:0 6px;cursor:pointer;white-space:nowrap}
+.add{margin-top:10px;min-height:40px;border:1px dashed var(--mut);border-radius:10px;background:none;padding:0 16px;cursor:pointer;color:var(--blue);font-weight:500}
+.side{position:sticky;top:16px;display:grid;gap:14px}
+@media(max-width:1000px){.side{position:static}}
+.card{border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--bg)}
+.tot{display:grid;gap:6px}.tot div{display:flex;justify-content:space-between;gap:10px}.tot div span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tot .big{font-size:22px;font-weight:700;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.tot .neg{color:var(--red)}
+.words{font-size:14px;color:var(--mut);margin-top:6px}
+.warn{background:var(--amberb);color:var(--amber);border-radius:12px;padding:12px 14px;font-size:14px}.warn p{margin:0}.warn p+p{margin-top:6px}
+.hint{background:var(--blueb);border-radius:12px;padding:12px 14px;font-size:14px}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.steps li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;padding:10px 0;position:relative}
+.steps li::before{content:"";position:absolute;left:13px;top:38px;bottom:-4px;width:2px;background:var(--line)}.steps li:last-child::before{display:none}
+.steps .dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--bg)}
+.steps .ok .dot{background:var(--blue);border-color:var(--blue);color:light-dark(#fff,#0d1020)}.steps .now .dot{border-color:var(--blue);color:var(--blue)}.steps .no .dot{background:var(--red);border-color:var(--red);color:#fff}
+.steps b{display:block;font-size:15px}.steps small{display:block;color:var(--mut);font-size:13px}
+.actions{display:grid;gap:8px}.actions .btn{width:100%}
+/* modal */
+.modal{position:fixed;inset:0;background:#0009;display:grid;place-items:center;z-index:50;padding:16px}
+.modal .box{background:var(--bg);border-radius:16px;padding:22px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto}
+.modal .box.wide{width:min(980px,100%);padding:0;background:var(--panel)}
+.modal .bar2{position:sticky;top:0;background:var(--bg);display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);z-index:2;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;z-index:60;font-size:15px;max-width:calc(100vw - 32px)}
+.save{font-size:13px;color:var(--mut)}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;white-space:normal;color:var(--mut);font-size:12px}.stack td:empty{display:none}
+nav{margin-left:0;width:100%}nav a{padding:8px 10px;font-size:14px}}
+@media(prefers-reduced-motion:reduce){.paper{transition:none}}
+/* print sheet (preview + download) */
+.pv{padding:16px;overflow:auto}
+.ps{font-family:Sarabun,"TH Sarabun New",sans-serif;color:#000;font-size:14.5px;line-height:1.45}
+.ps .page{width:210mm;min-height:297mm;padding:13mm 14mm;margin:0 auto 16px;background:#fff;box-shadow:0 2px 12px #0003;position:relative}
+.ps .ph{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #000;padding-bottom:8px;font-size:13px}
+.ps .co{font-size:17px;font-weight:700}.ps .pno{text-align:right;white-space:nowrap}
+.ps h2{text-align:center;font-size:19px;margin:12px 0 4px;font-weight:700}.ps .sub{text-align:center;margin:0 0 10px;font-size:13px}
+.ps h4{font-size:15px;margin:12px 0 4px;font-weight:700}
+.ps table{border-collapse:collapse;width:100%}
+.ps .kv th{text-align:left;font-weight:600;width:19%;padding:3px 6px 3px 0;vertical-align:top;white-space:nowrap}.ps .kv td{padding:3px 8px 3px 0;border-bottom:1px dotted #777;vertical-align:top}
+.ps .gt th,.ps .gt td{border:1px solid #000;padding:4px 6px;vertical-align:top}.ps .gt th{background:#eee;font-weight:600;text-align:center}
+.ps .gt .r{text-align:right;white-space:nowrap}.ps .gt tfoot td{font-weight:700}
+.ps .pbox{border:1px solid #000;padding:6px 8px;min-height:44px;white-space:pre-wrap}
+.ps .dots{display:inline-block;min-width:120px;border-bottom:1px dotted #000}
+.ps .sigs{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:12px;margin-top:18px;text-align:center;font-size:13.5px}
+.ps .sig .ln{height:40px;border-bottom:1px dotted #000;margin:0 10px 4px;position:relative}
+.ps .sig .stp{position:absolute;left:50%;top:4px;transform:translateX(-50%) rotate(-6deg);border:2px solid #1d3fb5;color:#1d3fb5;border-radius:5px;padding:0 8px;font-weight:700;font-size:13px;white-space:nowrap}
+.ps .sig .stp.no{border-color:#c00;color:#c00}
+.ps .para{text-indent:2.5em;margin:6px 0;text-align:justify}
+.ps .u{border-bottom:1px dotted #000;padding:0 6px;font-weight:600}
+.ps .fm{position:absolute;left:14mm;bottom:8mm;font-size:11px;color:#444}
+.ps .note{font-size:12.5px;margin-top:6px}
+@media print{body{background:#fff}.ps .page{box-shadow:none;margin:0;page-break-after:always}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">ระบบเอกสารบัญชี<small id="coName">ใบขอซื้อ · เบิกจ่าย · ทดรองจ่าย · โครงการ</small></div>
+  <nav id="nav">
+    <a href="#home" data-r="home">หน้าหลัก</a>
+    <a href="#new" data-r="new">สร้างเอกสาร</a>
+    <a href="#docs" data-r="docs">เอกสารทั้งหมด</a>
+    <a href="#projects" data-r="projects">โครงการ</a>
+    <a href="#setup" data-r="setup">ตั้งค่า</a>
+  </nav>
+</div></header>
+<div id="banner"></div>
+<main class="band"><div class="wrap" id="app"><p class="mut">กำลังโหลด…</p></div></main>
+<script>
+{
+/* ---------- utils ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=v=>{const n=parseFloat(String(v??'').replace(/,/g,''));return Number.isFinite(n)?n:0};
+const r2=n=>Math.round((n+Number.EPSILON)*100)/100;
+const money=n=>num(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const clone=o=>JSON.parse(JSON.stringify(o));
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const TM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TMS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const thDate=(iso,short)=>{if(!iso)return'';const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return String(iso);return (+m[3])+' '+(short?TMS:TM)[+m[2]-1]+' '+(+m[1]+543)};
+const dayDiff=(a,b)=>{const x=Date.parse(a),y=Date.parse(b);return Number.isFinite(x)&&Number.isFinite(y)?Math.round((y-x)/864e5):NaN};
+const uid=()=>'d'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function bahtText(n){
+  n=r2(num(n));const neg=n<0;n=Math.abs(n);let b=Math.floor(n),s=Math.round((n-b)*100);if(s>=100){b++;s=0}
+  const D=['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'],P=['','สิบ','ร้อย','พัน','หมื่น','แสน'];
+  const six=(x,hi)=>{const ds=String(x).split('').reverse();let o='';for(let i=ds.length-1;i>=0;i--){const d=+ds[i];if(!d)continue;
+    if(i===1&&d===1)o+='สิบ';else if(i===1&&d===2)o+='ยี่สิบ';else if(i===0&&d===1&&(x>9||hi))o+='เอ็ด';else o+=D[d]+P[i]}return o};
+  const conv=x=>x<1e6?six(x,false):conv(Math.floor(x/1e6))+'ล้าน'+(x%1e6?six(x%1e6,true):'');
+  if(!b&&!s)return'ศูนย์บาทถ้วน';
+  return (neg?'ลบ':'')+(b?conv(b)+'บาท':'')+(s?six(s,false)+'สตางค์':'ถ้วน');
+}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3200)}
+function modal(html,wide){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="box ${wide?'wide':''}" role="dialog" aria-modal="true">${html}</div>`;
+  const close=()=>{m.remove();document.removeEventListener('keydown',k)};const k=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',k);
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))close()});document.body.appendChild(m);m.close=close;
+  setTimeout(()=>{const f=m.querySelector('textarea,input,select,button.pri');f&&f.focus()},30);return m}
+function ask(msg,okLabel='ยืนยัน',danger){return new Promise(res=>{const m=modal(`<h3>${esc(msg)}</h3><div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn" data-close>ยกเลิก</button><button class="btn ${danger?'redf':'pri'}" id="okb">${esc(okLabel)}</button></div>`);
+  m.querySelector('[data-close]').onclick=()=>res(false);m.querySelector('#okb').onclick=()=>{m.close();res(true)}})}
+
+/* ---------- state ---------- */
+let CAN_WRITE=true;
+let DB=null,USER=null,ME=null,CAN_APPROVE=true,CAN_CFG=true,LOCAL=true,LOADED=false,DLS=null;
+let DOCS=[];const NEW={};let EDIT=null,EDITING=false,DIRTY=false,saveT=null,stale=false;
+const PROF={};
+const CFG={name:'บริษัท ........................ จำกัด',addr:'',tax:'',vat:7,perDiem:300,fuel:6,depts:'IT, บัญชี, จัดซื้อ, ขาย, การตลาด, ปฏิบัติการ, บุคคล',appUrl:'https://claude.ai/artifact/7jsEdmfrm9iSUtmdq1wdHQ',emails:{}};
+let ME_EMAIL='';
+const LS='acctsys-docs-v1',LSC='acctsys-cfg-v1';
+const deptList=()=>String(CFG.depts||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+function persistLocal(){try{localStorage.setItem(LS,JSON.stringify(DOCS))}catch(e){}}
+const wq={};
+function write(id,fn){wq[id]=(wq[id]||Promise.resolve()).then(fn).catch(e=>{console.error(e);toast(e&&e.code==='quota_exceeded'?'พื้นที่ฐานข้อมูลเต็ม ลบเอกสารเก่าที่ไม่ใช้ก่อน':e&&e.code==='invalid_argument'?'บันทึกไม่ได้ — บัญชีนี้มีสิทธิ์ดูอย่างเดียว ให้เจ้าของหน้าแชร์เป็น Contributor':'บันทึกไม่สำเร็จ: '+(e&&e.message||e));throw e});return wq[id]}
+async function saveDoc(doc){
+  doc.updatedAt=new Date().toISOString();const body=clone(doc);delete NEW[doc.id];
+  const i=DOCS.findIndex(x=>x.id===doc.id);if(i<0)DOCS.push(body);else DOCS[i]=body;
+  if(DB)await write(doc.id,()=>DB.collection('docs').doc(doc.id).set(body));else persistLocal();
+}
+async function removeDoc(id){DOCS=DOCS.filter(x=>x.id!==id);delete NEW[id];if(DB)await write(id,()=>DB.collection('docs').doc(id).delete());else persistLocal()}
+async function saveCfg(){if(DB)await write('cfg',()=>DB.doc('config/company').set(clone(CFG)));else try{localStorage.setItem(LSC,JSON.stringify(CFG))}catch(e){}}
+async function names(ids){ids=[...new Set(ids.filter(x=>x&&x!=='local'&&!(x in PROF)))];if(!ids.length||!USER)return;try{const ps=await USER.profiles(ids);ids.forEach(i=>PROF[i]=(ps&&ps[i]&&ps[i].name)||'')}catch(e){}}
+const nameOf=id=>id==='local'||!id?'':(PROF[id]||'');
+function fillNames(){const ids=$$('[data-uid]').map(e=>e.dataset.uid);names(ids).then(()=>$$('[data-uid]').forEach(e=>{e.textContent=nameOf(e.dataset.uid)||e.dataset.fb||'ผู้ใช้'}))}
+
+/* ---------- domain ---------- */
+const STAT={draft:'ร่าง',pending:'รออนุมัติ',approved:'อนุมัติแล้ว',rejected:'ไม่อนุมัติ'};
+const yes=(d,k,v)=>d[k]===v;
+const projects=()=>DOCS.filter(x=>x.type==='PJO'&&(x.status==='pending'||x.status==='approved')).map(x=>{
+  const d=x.data||{};let budget=T.PJO.calc(d).total;
+  const ch=DOCS.filter(y=>y.type==='PJC'&&y.status==='approved'&&(y.data||{}).projectId===x.id).sort((a,b)=>String(a.updatedAt).localeCompare(b.updatedAt));
+  let end=d.end;ch.forEach(y=>(y.data.changes||[]).forEach(r=>{if(r.item==='งบประมาณรวม'&&num(r.nw))budget=num(r.nw);if(r.item==='วันที่สิ้นสุด'&&r.nw)end=r.nw}));
+  return {id:x.id,doc:x,code:d.projCode||d.code||'',name:d.name||'(ไม่มีชื่อ)',budget,limit:num(d.limit),start:d.start,end,lead:d.lead,active:x.status==='approved',closed:ch.some(y=>y.data.kind==='ปิดโครงการ')}});
+const projLabel=p=>p?(p.code?p.code+' · ':'')+p.name:'';
+const projById=id=>projects().find(p=>p.id===id);
+function usage(pid,exceptId){let c=0,s=0;DOCS.forEach(x=>{if(x.status!=='approved'||x.id===exceptId)return;const d=x.data||{};
+  if(x.type==='PR'&&d.projectId===pid)c+=T.PR.calc(d).net;
+  if(x.type==='EXP'&&d.projectId===pid)s+=T.EXP.calc(d,x).tNet;
+  if(x.type==='TRV'&&d.projectId===pid)s+=T.TRV.calc(d).total});return {committed:r2(c),spent:r2(s),used:r2(c+s)}}
+function advState(adv){const ex=DOCS.filter(x=>x.type==='EXP'&&(x.data||{}).advRef===adv.id&&x.status!=='rejected');
+  if(ex.some(x=>x.status==='approved'))return 'cleared';if(ex.some(x=>x.status==='pending'))return 'clearing';return 'open'}
+const advAmt=adv=>T.ADV.calc(adv.data||{}).total;
+
+/* ---------- form types ---------- */
+const PURP=['ค่าใช้จ่ายทั่วไป','ค่าใช้จ่ายวิจัยและพัฒนา - วัสดุ','เครื่องมือและอุปกรณ์ - วิจัย (ทรัพย์สิน)','ค่าใช้จ่ายวิจัยและพัฒนา - ค่าจ้าง','งานพัฒนาระหว่างทำ (สินทรัพย์ไม่มีตัวตน)'];
+const PURP_HINT={
+ 'ค่าใช้จ่ายทั่วไป':'บัญชีบันทึกแยกตามหมวดค่าใช้จ่าย ถ้าเป็นการจ้างทั่วไปต้องหักภาษี ณ ที่จ่าย 3%',
+ 'ค่าใช้จ่ายวิจัยและพัฒนา - วัสดุ':'กรณีที่ 1: วัสดุที่ใช้หมดไปในงานวิจัย เช่น สารเคมี ชิ้นส่วนทดลอง อะไหล่ที่ถอดมาทดสอบ → บันทึกค่าใช้จ่ายวิจัยและพัฒนา + รหัสโครงการ',
+ 'เครื่องมือและอุปกรณ์ - วิจัย (ทรัพย์สิน)':'กรณีที่ 2: เครื่องมือ/อุปกรณ์ที่ใช้งานเกิน 1 ปี เช่น เครื่องทดสอบ คอมพิวเตอร์งานวิจัย → บันทึกเป็นสินทรัพย์ก่อน แล้วนำค่าเสื่อมราคาเข้าค่าใช้จ่ายวิจัย',
+ 'ค่าใช้จ่ายวิจัยและพัฒนา - ค่าจ้าง':'กรณีที่ 3: จ้างหน่วยงานภายนอกทำวิจัยหรือทดสอบ → ค่าใช้จ่ายวิจัย-ค่าจ้าง และต้องหักภาษี ณ ที่จ่าย 3%',
+ 'งานพัฒนาระหว่างทำ (สินทรัพย์ไม่มีตัวตน)':'กรณีที่ 4: ผ่านช่วงวิจัยแล้วและพิสูจน์ได้ครบทุกข้อ — ทำได้จริงทางเทคนิค, ตั้งใจและสามารถนำไปใช้หรือขาย, เกิดประโยชน์เชิงเศรษฐกิจ, มีทรัพยากรพอทำให้เสร็จ, วัดต้นทุนได้อย่างน่าเชื่อถือ → บันทึกเป็นสินทรัพย์ไม่มีตัวตนระหว่างพัฒนา'};
+const sumRows=(rows,f)=>r2((rows||[]).reduce((a,r)=>a+f(r),0));
+const vatRate=()=>num(CFG.vat)/100;
+const reqName=d=>d.requester||d.traveler||d.payer||d.lead||d.reporter||'';
+
+const T={
+PR:{name:'ใบขอซื้อ / ขอจ้าง',en:'Purchase Requisition (PR)',desc:'ขอซื้อสินค้าหรือจ้างบริการ ผูกโครงการและหมวดบัญชี',pfx:d=>'PR-'+(String(d.dept||'GEN').toUpperCase().replace(/[^A-Z0-9]/g,'')||'GEN'),
+ steps:[{n:'หัวหน้างาน / ผู้บังคับบัญชา',d:'ตรวจสอบความจำเป็นและงบประมาณ'},{n:'ฝ่ายจัดซื้อ / จัดหา',d:'ตรวจสอบวิธีจัดซื้อและเอกสารประกอบ'},{n:'ผู้มีอำนาจอนุมัติ',d:'อนุมัติ / ไม่อนุมัติ'}],
+ init:()=>({unit:'สำนักงานใหญ่ (สนญ.)',reqDate:today(),reqType:'ซื้อสินค้า',budgetType:'ในงบประมาณ',purpose:PURP[0],vatMode:'VAT 7% (ราคายังไม่รวม VAT)',items:[{}]}),
+ secs:[
+  {h:'ข้อมูลผู้ขอซื้อ',f:[{k:'unit',l:'หน่วยงานที่เบิก',t:'radio',o:['สำนักงานใหญ่ (สนญ.)','สาขา']},{k:'branch',l:'ชื่อ / รหัสสาขา',show:d=>d.unit==='สาขา'},
+   {k:'dept',l:'แผนก',t:'dept',req:1},{k:'requester',l:'ผู้ขอซื้อ',req:1},{k:'phone',l:'เบอร์ติดต่อ'},{k:'reqType',l:'ประเภทการขอ',t:'radio',o:['ซื้อสินค้า','จ้างบริการ']},
+   {k:'reqDate',l:'วันที่ขอซื้อ',t:'date',req:1},{k:'needDate',l:'วันที่ต้องการสินค้า / บริการ',t:'date',req:1}]},
+  {h:'โครงการและหมวดบัญชี',f:[{k:'projectId',l:'โครงการ',t:'project',hint:'เว้นว่างได้ถ้าเป็นค่าใช้จ่ายทั่วไป'},{k:'budgetType',l:'ประเภทงบประมาณ',t:'radio',o:['ในงบประมาณ','นอกงบประมาณ']},
+   {k:'purpose',l:'วัตถุประสงค์ของการใช้ (หมวดบัญชี)',t:'select',o:PURP,w:'full'},{k:'acct',l:'ฝ่ายบัญชีจะบันทึกเป็น',t:'note',w:'full'}]},
+  {h:'วัตถุประสงค์และเหตุผล',f:[{k:'objective',l:'วัตถุประสงค์และเหตุผลในการขอซื้อ / ขอจ้าง',t:'textarea',req:1,w:'full',hint:'ระบุความจำเป็น ผลกระทบ และประโยชน์ที่คาดว่าจะได้รับ'},{k:'usage',l:'รายละเอียดการใช้งาน',t:'textarea',w:'full'}]},
+  {h:'รายการที่ขอซื้อ / ขอจ้าง',f:[{k:'items',t:'table',req:1,cols:[{k:'desc',l:'รายการ / รายละเอียด',w:220},{k:'spec',l:'สเปก / คุณลักษณะ',w:170},{k:'qty',l:'จำนวน',t:'num',w:80},{k:'unit',l:'หน่วย',w:80},{k:'price',l:'ราคา/หน่วย',t:'num',w:110},{k:'amt',l:'จำนวนเงิน',calc:r=>num(r.qty)*num(r.price),w:110},{k:'vendor',l:'ผู้ขาย / แหล่งอ้างอิง',w:170},{k:'cc',l:'Cost Center',w:110},{k:'note',l:'หมายเหตุ',w:120}]},
+   {k:'vatMode',l:'ภาษีมูลค่าเพิ่ม',t:'radio',o:['VAT 7% (ราคายังไม่รวม VAT)','ราคารวม VAT แล้ว','ไม่มี VAT'],w:'full'}]},
+  {h:'เอกสารประกอบและเงื่อนไข',f:[{k:'vendor',l:'ผู้ขายที่เสนอแนะ'},{k:'attach',l:'เอกสารแนบ',t:'checks',o:['ใบเสนอราคา','รายละเอียดสเปก / TOR','ใบเปรียบเทียบราคา','อื่น ๆ']},
+   {k:'terms',l:'รายละเอียดเพิ่มเติม / เงื่อนไข / กำหนดส่งมอบ / ขอบเขตงาน',t:'textarea',w:'full'}]}],
+ calc(d){const sub=sumRows(d.items,r=>num(r.qty)*num(r.price)),rt=vatRate();let vat=0,net=sub,total=sub;
+  if(d.vatMode==='ราคารวม VAT แล้ว'){vat=r2(sub*rt/(1+rt));net=r2(sub-vat)}else if(d.vatMode!=='ไม่มี VAT'){vat=r2(sub*rt);total=r2(sub+vat)}
+  const wht=(d.reqType==='จ้างบริการ'||d.purpose==='ค่าใช้จ่ายวิจัยและพัฒนา - ค่าจ้าง')?r2(net*.03):0;
+  return {sub,vat,net,total,wht,acct:PURP_HINT[d.purpose]||''}},
+ totals:c=>[['รวมเงิน',c.sub],['VAT '+CFG.vat+'%',c.vat],['มูลค่าก่อน VAT (ตัดงบ)',c.net],['รวมทั้งสิ้น',c.total,1],c.wht?['หัก ณ ที่จ่าย 3% (ประมาณ)',c.wht]:null],
+ warn(d,c,doc){const w=[];const p=projById(d.projectId);
+  if(d.purpose!==PURP[0]&&!d.projectId)w.push('หมวดวิจัย/พัฒนา ต้องระบุโครงการ เพื่อให้บัญชีบันทึกตามรหัสโครงการ');
+  if(p){if(!p.active)w.push('โครงการนี้ยังไม่ได้รับอนุมัติ / ยังไม่มีรหัสโครงการจากฝ่ายบัญชี');if(p.closed)w.push('โครงการนี้ปิดแล้ว ไม่ควรออก PR เพิ่ม');
+   if(p.limit&&c.net>p.limit)w.push('ยอดเกินวงเงินอนุมัติต่อครั้งของโครงการ ('+money(p.limit)+' บาท)');
+   const u=usage(p.id,doc.id),left=r2(p.budget-u.used);if(c.net>left)w.push('งบโครงการคงเหลือ '+money(left)+' บาท ไม่พอสำหรับ PR นี้');}
+  if(d.needDate&&d.reqDate&&d.needDate<d.reqDate)w.push('วันที่ต้องการใช้อยู่ก่อนวันที่ขอซื้อ');
+  if(c.wht)w.push('งานจ้าง: ฝ่ายบัญชีต้องหักภาษี ณ ที่จ่าย 3% ตอนจ่ายเงิน');return w},
+ title:d=>(d.items||[]).map(r=>r.desc).filter(Boolean)[0]||d.objective||''},
+
+ADV:{name:'ใบเบิกเงินทดรองจ่าย',en:'Advance · FM-AC-03',desc:'ยืมเงินล่วงหน้าไปใช้จ่าย แล้วเคลียร์ด้วยใบขอเบิก',pfx:()=>'ADV',
+ steps:[{n:'ผู้อนุมัติ / ตรวจสอบ'},{n:'ผู้จ่ายเงิน',d:'บันทึกเมื่อโอนเงินแล้ว',verb:'บันทึกว่าจ่ายเงินแล้ว'}],done:'จ่ายแล้ว',
+ init:()=>({date:today(),items:[{}]}),
+ secs:[{h:'ผู้ขอเบิก',f:[{k:'requester',l:'ชื่อผู้ขอเบิก',req:1},{k:'position',l:'ตำแหน่ง'},{k:'dept',l:'ส่วนงาน / ฝ่าย / แผนก',t:'dept'},{k:'date',l:'วันที่',t:'date',req:1},
+   {k:'needDate',l:'วันที่ต้องการใช้เงิน',t:'date',req:1},{k:'bank',l:'โอนเงินเข้าบัญชี (ธนาคาร เลขที่บัญชี)'},{k:'purpose',l:'วัตถุประสงค์การยืมเงินทดรองจ่าย',t:'textarea',req:1,w:'full'},{k:'returnDue',l:'กำหนดระยะเวลาคืน / เคลียร์',t:'date',req:1}]},
+  {h:'รายละเอียดรายจ่าย',f:[{k:'items',t:'table',req:1,cols:[{k:'desc',l:'รายละเอียดรายจ่าย',w:280},{k:'projectId',l:'โครงการ',t:'project',w:200},{k:'amount',l:'จำนวนเงินประมาณ (บาท)',t:'num',w:140}]}]}],
+ calc:d=>{const total=sumRows(d.items,r=>num(r.amount));return {total}},
+ totals:c=>[['รวมเงินทดรอง',c.total,1]],
+ warn(d){const w=[];if(d.returnDue&&d.date&&d.returnDue<d.date)w.push('กำหนดคืนอยู่ก่อนวันที่ยื่น');
+  const open=DOCS.filter(x=>x.type==='ADV'&&x.status==='approved'&&x.createdBy===ME&&advState(x)!=='cleared');if(open.length)w.push('คุณยังมีเงินทดรองที่ยังไม่เคลียร์ '+open.length+' รายการ');return w},
+ title:d=>d.purpose||''},
+
+EXP:{name:'ใบขอเบิกค่าใช้จ่าย',en:'Expense Reimbursement',desc:'เบิกคืนเงินสำรองจ่าย หรือเคลียร์เงินทดรอง ทีละใบเสร็จ',pfx:()=>'EXP',
+ steps:[{n:'ผู้บังคับบัญชา / ผู้อนุมัติ',partial:1},{n:'ฝ่ายบัญชี (ผู้ตรวจสอบ)'},{n:'ผู้รับเงิน / จ่ายเงิน',d:'บันทึกเมื่อจ่ายเงินแล้ว',verb:'บันทึกว่าจ่ายเงินแล้ว'}],done:'จ่ายแล้ว',
+ init:()=>({kind:'เบิกค่าใช้จ่ายสำรองจ่าย',date:today(),payMethod:'โอนเข้าบัญชีเงินเดือน',items:[{}],attach:['ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป (ฉบับจริง)']}),
+ secs:[{h:'ประเภทการเบิก',f:[{k:'kind',l:'ประเภท',t:'radio',o:['เบิกค่าใช้จ่ายสำรองจ่าย','เคลียร์เงินทดรองจ่าย'],w:'full'},{k:'advRef',l:'เลขที่ใบทดรองที่เคลียร์',t:'advance',show:d=>d.kind==='เคลียร์เงินทดรองจ่าย',req:d=>d.kind==='เคลียร์เงินทดรองจ่าย',w:'full'}]},
+  {h:'ข้อมูลผู้ขอเบิก',f:[{k:'requester',l:'ชื่อ-นามสกุล',req:1},{k:'empId',l:'รหัสพนักงาน'},{k:'position',l:'ตำแหน่ง'},{k:'dept',l:'แผนก / ฝ่าย',t:'dept'},{k:'projectId',l:'โครงการ',t:'project'},{k:'phone',l:'เบอร์โทร / อีเมล'},
+   {k:'date',l:'วันที่ยื่นเบิก',t:'date',req:1},{k:'purpose',l:'วัตถุประสงค์การเบิก',req:1}]},
+  {h:'รายการค่าใช้จ่าย',sub:'หนึ่งบรรทัดต่อใบเสร็จหนึ่งใบ เรียงตามเอกสารแนบ (ไม่มี VAT ให้เว้นว่าง)',f:[{k:'items',t:'table',req:1,cols:[{k:'payDate',l:'วันที่จ่าย',t:'date',w:150},{k:'receipt',l:'เลขที่ใบเสร็จ',w:140},{k:'payee',l:'ผู้รับเงิน / ร้านค้า',w:160},{k:'detail',l:'รายละเอียด',w:220},
+   {k:'cat',l:'ประเภท',t:'select',o:['ค่าเดินทาง','ค่าอาหาร / รับรอง','ค่าวัสดุ / อุปกรณ์','ค่าซอฟต์แวร์ / บริการออนไลน์','ค่าขนส่ง','อื่นๆ'],w:150},{k:'net',l:'ก่อน VAT',t:'num',w:110},{k:'vat',l:'VAT 7%',t:'vat',w:130},{k:'sum',l:'รวม',calc:r=>num(r.net)+num(r.vat),w:110}]}]},
+  {h:'วิธีรับเงินคืนและเอกสารแนบ',f:[{k:'payMethod',l:'วิธีรับเงินคืน',t:'radio',o:['โอนเข้าบัญชีเงินเดือน','โอนเข้าบัญชีอื่น','รับเงินสด'],w:'full'},
+   {k:'bank',l:'ธนาคาร / สาขา',show:d=>d.payMethod==='โอนเข้าบัญชีอื่น'},{k:'accNo',l:'เลขที่บัญชี',show:d=>d.payMethod==='โอนเข้าบัญชีอื่น'},{k:'accName',l:'ชื่อบัญชี',show:d=>d.payMethod==='โอนเข้าบัญชีอื่น'},
+   {k:'attach',l:'เอกสารแนบ',t:'checks',o:['ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป (ฉบับจริง)','ใบรับรองแทนใบเสร็จรับเงิน (กรณีไม่มีใบเสร็จ)','ใบแจ้งหนี้ / ใบสั่งซื้อ','เอกสารอนุมัติล่วงหน้า / บันทึกขออนุมัติ','อื่นๆ'],w:'full'},
+   {k:'attachOther',l:'อื่นๆ (ระบุ)',show:d=>(d.attach||[]).includes('อื่นๆ')},{k:'attachCount',l:'จำนวนเอกสารแนบรวม (ฉบับ)',t:'num'}]}],
+ calc(d){const tNet=sumRows(d.items,r=>num(r.net)),tVat=sumRows(d.items,r=>num(r.vat)),total=r2(tNet+tVat);const adv=d.kind==='เคลียร์เงินทดรองจ่าย'&&d.advRef?DOCS.find(x=>x.id===d.advRef):null;
+  const advA=adv?advAmt(adv):0;return {tNet,tVat,total,adv:advA,remain:r2(total-advA)}},
+ totals:c=>[['ก่อน VAT',c.tNet],['VAT',c.tVat],['รวมทั้งสิ้น',c.total,1],c.adv?['หักเงินทดรองที่รับไปแล้ว',-c.adv]:null,c.adv?[c.remain<0?'ต้องคืนบริษัท':'คงเหลือเบิกคืน',c.remain,1,c.remain<0]:null],
+ warn(d,c,doc){const w=[];if(d.kind==='เคลียร์เงินทดรองจ่าย'&&!d.advRef)w.push('เลือกใบทดรองที่ต้องการเคลียร์');if(c.remain<0)w.push('ใช้จ่ายน้อยกว่าเงินทดรอง ต้องคืนเงินบริษัท '+money(-c.remain)+' บาท');
+  const mine=new Set((d.items||[]).map(r=>String(r.receipt||'').trim()).filter(Boolean));
+  DOCS.forEach(x=>{if(x.type!=='EXP'||x.id===doc.id||x.status==='rejected')return;(x.data.items||[]).forEach(r=>{const k=String(r.receipt||'').trim();if(k&&mine.has(k))w.push('เลขที่ใบเสร็จ '+k+' เคยใช้เบิกแล้วใน '+(x.no||'เอกสารร่าง'))})});
+  (d.items||[]).forEach((r,i)=>{if(num(r.vat)&&num(r.net)&&Math.abs(num(r.vat)-num(r.net)*vatRate())>1)w.push('แถว '+(i+1)+': VAT ไม่ตรง 7% ของยอดก่อน VAT')});return w},
+ title:d=>d.purpose||''},
+
+TRV:{name:'ใบเบิกค่าเดินทางไปปฏิบัติงาน',en:'Travel Expense + ใบรับรองแทนใบเสร็จ',desc:'ค่าพาหนะ เบี้ยเลี้ยง น้ำมัน ทางด่วน พิมพ์ใบรับรองแทนใบเสร็จให้อัตโนมัติ',pfx:()=>'TRV',
+ steps:[{n:'ผู้อนุมัติให้จ่าย'},{n:'ฝ่ายบัญชี / จ่ายเงิน',verb:'บันทึกว่าจ่ายเงินแล้ว'}],done:'จ่ายแล้ว',
+ init:()=>({date:today(),forWhom:'ข้าพเจ้า',perDiemRate:CFG.perDiem,fuelRate:CFG.fuel,items:[{}]}),
+ secs:[{h:'การเดินทาง',f:[{k:'to',l:'เรียน'},{k:'date',l:'วันที่',t:'date',req:1},{k:'traveler',l:'ผู้เดินทาง',req:1},{k:'position',l:'ตำแหน่ง'},{k:'dept',l:'แผนก',t:'dept'},{k:'projectId',l:'โครงการ',t:'project'},
+   {k:'purpose',l:'เดินทางไปปฏิบัติงานเพื่อ (งาน / สถานที่)',t:'textarea',req:1,w:'full'},{k:'from',l:'ออกเดินทางจาก',w:'full'},
+   {k:'start',l:'ตั้งแต่วันที่',t:'date',req:1},{k:'end',l:'ถึงวันที่',t:'date',req:1},{k:'tFrom',l:'ตั้งแต่เวลา',t:'time'},{k:'tTo',l:'ถึงเวลา',t:'time'},
+   {k:'days',l:'จำนวนวันปฏิบัติงาน',t:'calc'},{k:'forWhom',l:'เบิกสำหรับ',t:'radio',o:['ข้าพเจ้า','คณะเดินทาง']}]},
+  {h:'ค่าพาหนะที่ไม่มีใบเสร็จ (ใบรับรองแทนใบเสร็จรับเงิน)',sub:'เช่น Grab แท็กซี่ วินมอเตอร์ไซค์ — ระบบจะพิมพ์ใบรับรองแทนใบเสร็จแนบท้ายให้',f:[{k:'items',t:'table',cols:[{k:'date',l:'วัน เดือน ปี',t:'date',w:150},{k:'detail',l:'รายละเอียดรายจ่าย',w:300},{k:'amount',l:'จำนวนเงิน',t:'num',w:120},{k:'note',l:'หมายเหตุ',w:140}]},
+   {k:'parking',l:'ค่าพาหนะ / ที่จอดรถ ที่มีใบเสร็จ (บาท)',t:'num'}]},
+  {h:'เบี้ยเลี้ยงและค่าใช้จ่ายอื่น',f:[{k:'perDiemRate',l:'เบี้ยเลี้ยงอัตราวันละ (บาท)',t:'num'},{k:'perDiemDays',l:'จำนวนวันที่เบิกเบี้ยเลี้ยง',t:'num',hint:'เว้นว่าง = ใช้จำนวนวันปฏิบัติงาน'},
+   {k:'km',l:'ระยะทางรถส่วนตัว (กิโลเมตร)',t:'num'},{k:'fuelRate',l:'อัตราค่าน้ำมัน (บาท/กม.)',t:'num'},{k:'toll',l:'ค่าทางด่วน (บาท)',t:'num'},{k:'other',l:'ค่าใช้จ่ายอื่น (บาท)',t:'num'},{k:'otherNote',l:'ค่าใช้จ่ายอื่นคือ'},{k:'attachCount',l:'หลักฐานการจ่ายที่แนบ (ฉบับ)',t:'num'}]}],
+ calc(d){const dd=dayDiff(d.start,d.end),days=Number.isFinite(dd)&&dd>=0?dd+1:0;const items=sumRows(d.items,r=>num(r.amount)),fare=r2(items+num(d.parking));
+  const pdd=d.perDiemDays===''||d.perDiemDays==null?days:num(d.perDiemDays);const perDiem=r2(num(d.perDiemRate)*pdd),fuel=r2(num(d.km)*num(d.fuelRate));
+  const total=r2(fare+perDiem+fuel+num(d.toll)+num(d.other));return {days:days?days+' วัน':'',nd:days,pdd,items,fare,perDiem,fuel,toll:num(d.toll),other:num(d.other),total}},
+ totals:c=>[['1. ค่าพาหนะ / ที่จอดรถ',c.fare],['2. เบี้ยเลี้ยง '+c.pdd+' วัน',c.perDiem],['3. ค่าน้ำมันเชื้อเพลิง',c.fuel],['4. ค่าทางด่วน',c.toll],['5. ค่าใช้จ่ายอื่น',c.other],['รวมเงินทั้งสิ้น',c.total,1]],
+ warn(d,c){const w=[];if(d.start&&d.end&&d.end<d.start)w.push('วันที่สิ้นสุดอยู่ก่อนวันที่เริ่ม');(d.items||[]).forEach((r,i)=>{if(r.date&&d.start&&d.end&&(r.date<d.start||r.date>d.end))w.push('ค่าพาหนะแถว '+(i+1)+' อยู่นอกช่วงวันเดินทาง')});
+  if(c.pdd>c.nd&&c.nd)w.push('จำนวนวันเบี้ยเลี้ยงมากกว่าจำนวนวันปฏิบัติงาน');return w},
+ title:d=>d.purpose||''},
+
+SUB:{name:'ใบรับรองแทนใบเสร็จรับเงิน',en:'FM-AC-02',desc:'รายจ่ายที่เรียกใบเสร็จไม่ได้ ใช้แนบกับใบขอเบิก',pfx:()=>'RC',
+ steps:[{n:'ผู้อนุมัติ'}],init:()=>({buyer:CFG.name,items:[{}]}),
+ secs:[{h:'รายละเอียดรายจ่าย',f:[{k:'buyer',l:'บจ. / หจก. (ผู้ซื้อ / ผู้รับบริการ)',w:'full'},{k:'items',t:'table',req:1,cols:[{k:'date',l:'วัน เดือน ปี',t:'date',w:150},{k:'detail',l:'รายละเอียดรายจ่าย',w:320},{k:'amount',l:'จำนวนเงิน',t:'num',w:120},{k:'note',l:'หมายเหตุ',w:150}]}]},
+  {h:'ผู้รับรอง',f:[{k:'payer',l:'ข้าพเจ้า (ผู้เบิกจ่าย)',req:1},{k:'position',l:'ตำแหน่ง'},{k:'dept',l:'แผนก',t:'dept'},{k:'from',l:'ตั้งแต่วันที่',t:'date',hint:'เว้นว่าง = ใช้วันแรกในรายการ'},{k:'to',l:'ถึงวันที่',t:'date'}]}],
+ calc:d=>{const total=sumRows(d.items,r=>num(r.amount));return {total}},totals:c=>[['รวมทั้งสิ้น',c.total,1]],
+ warn(d){return (d.items||[]).some(r=>num(r.amount)&&!r.date)?['ใส่วันที่ทุกรายการ']:[]},title:d=>(d.items||[]).map(r=>r.detail).filter(Boolean)[0]||''},
+
+PJO:{name:'ใบแจ้งเปิดโครงการ',en:'แจ้งฝ่ายบัญชีก่อนออก PR ใบแรก',desc:'ตั้งโครงการ งบประมาณ ระยะเวลา ฝ่ายบัญชีกำหนดรหัสให้',pfx:()=>'PJ',
+ steps:[{n:'ผู้มีอำนาจอนุมัติ'},{n:'ฝ่ายบัญชี — ตั้งรหัสโครงการ',fields:[{k:'projCode',l:'รหัสโครงการที่กำหนด',req:1},{k:'setupDate',l:'วันที่ตั้งในระบบ',t:'date'}],checks:['ตั้งรหัสโครงการในระบบ','ตั้งงบประมาณ','ตั้งทะเบียนทรัพย์สิน (ถ้ามี)','แจ้งรหัสให้หน้างาน'],verb:'บันทึกรหัสโครงการ'}],done:'เปิดโครงการแล้ว',
+ init:()=>({date:today(),ptype:'โครงการวิจัย',budget:['วัสดุสิ้นเปลือง / วัสดุวิจัย','เครื่องมือและอุปกรณ์ (ทรัพย์สิน)','ค่าจ้างภายนอก','ค่าแรงบุคลากรภายใน','ค่าเดินทาง','อื่น ๆ'].map(c=>({cat:c}))}),
+ secs:[{h:'ข้อมูลพื้นฐานของโครงการ',f:[{k:'name',l:'ชื่อโครงการ',req:1,w:'full'},{k:'code',l:'รหัสโครงการ (ถ้ามี)',hint:'ถ้ายังไม่มีเว้นว่าง ฝ่ายบัญชีจะกำหนดให้'},{k:'date',l:'วันที่แจ้ง',t:'date',req:1},
+   {k:'ptype',l:'ประเภทโครงการ',t:'select',o:['โครงการวิจัย','โครงการพัฒนา','โครงการลงทุน','โครงการทั่วไป']},{k:'owner',l:'หน่วยงานเจ้าของ'},{k:'branch',l:'ชื่อสาขา / ฟาร์ม'},{k:'cc',l:'ศูนย์ต้นทุน'},
+   {k:'lead',l:'หัวหน้าโครงการ',req:1},{k:'phone',l:'เบอร์โทร'},{k:'approver',l:'ผู้มีอำนาจอนุมัติ'},{k:'limit',l:'วงเงินอนุมัติ / ครั้ง (บาท)',t:'num'}]},
+  {h:'ระยะเวลา',f:[{k:'start',l:'วันที่เริ่ม',t:'date',req:1},{k:'end',l:'วันที่สิ้นสุด',t:'date',req:1},{k:'dur',l:'ระยะเวลา',t:'calc'},{k:'fy',l:'ปีบัญชี',t:'calc'}]},
+  {h:'งบประมาณที่อนุมัติ (ไม่รวม VAT)',f:[{k:'budget',t:'table',fixed:1,cols:[{k:'cat',l:'หมวด',t:'fixed',w:260},{k:'amount',l:'จำนวนเงิน',t:'num',w:140},{k:'note',l:'หมายเหตุ',w:260}]},
+   {k:'attach',l:'เอกสารแนบ',t:'checks',o:['แบบเสนอโครงการที่อนุมัติ','รายละเอียดงบประมาณ','เอกสารอื่น ๆ']}]}],
+ calc(d){const total=sumRows(d.budget,r=>num(r.amount));let dur='',fy='';if(d.start&&d.end&&d.end>=d.start){const a=new Date(d.start),b=new Date(d.end);b.setDate(b.getDate()+1);
+   let m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth();if(b.getDate()<a.getDate())m--;dur=m+' เดือน';fy=a.getFullYear()!==new Date(d.end).getFullYear()?'⚠ คร่อมปีบัญชี บัญชีต้องแยกยอดตามปี':'อยู่ในปีบัญชีเดียว'}return {total,dur,fy}},
+ totals:c=>[['รวมงบประมาณ',c.total,1]],
+ warn(d,c){const w=[];if(d.end&&d.start&&d.end<d.start)w.push('วันที่สิ้นสุดอยู่ก่อนวันที่เริ่ม');if(c.fy.startsWith('⚠'))w.push('โครงการคร่อมปีบัญชี ฝ่ายบัญชีต้องแยกยอดตามปี');if(!c.total)w.push('ยังไม่ได้ใส่งบประมาณ');return w},
+ title:d=>d.name||''},
+
+PJC:{name:'ใบแจ้งเปลี่ยนแปลง / ปิดโครงการ',en:'เปลี่ยนงบ · ขยายเวลา · รายงานสิ้นปี · ปิดโครงการ',desc:'ระบบดึงยอดใช้จริงของโครงการให้อัตโนมัติ',pfx:()=>'PJC',
+ steps:[{n:'ผู้มีอำนาจอนุมัติ'},{n:'ฝ่ายบัญชีรับเรื่อง'}],
+ init:()=>({date:today(),kind:'เปลี่ยนงบประมาณ',changes:[{}]}),
+ secs:[{h:'ข้อมูลการแจ้ง',f:[{k:'projectId',l:'โครงการ',t:'project',req:1,w:'full'},{k:'date',l:'วันที่แจ้ง',t:'date',req:1},{k:'reporter',l:'ผู้แจ้ง (หัวหน้าโครงการ)',req:1},
+   {k:'kind',l:'ประเภทการแจ้ง',t:'radio',o:['เปลี่ยนงบประมาณ','ขยายเวลา','รายงานก่อนปิดงบสิ้นปี','ปิดโครงการ'],w:'full'}]},
+  {h:'เปลี่ยนแปลงงบหรือระยะเวลา',show:d=>d.kind==='เปลี่ยนงบประมาณ'||d.kind==='ขยายเวลา',sub:'“งบประมาณรวม” และ “วันที่สิ้นสุด” จะอัปเดตข้อมูลโครงการเมื่ออนุมัติ (วันที่ใส่แบบ ปปปป-ดด-วว)',f:[{k:'changes',t:'table',cols:[{k:'item',l:'รายการที่เปลี่ยน',t:'select',o:['งบประมาณรวม','วันที่สิ้นสุด','งบหมวดวัสดุ','งบหมวดเครื่องมือ / อุปกรณ์','งบหมวดค่าจ้างภายนอก','งบหมวดค่าแรงภายใน','งบหมวดค่าเดินทาง','อื่น ๆ'],w:200},
+   {k:'old',l:'เดิม',w:140},{k:'nw',l:'ใหม่',w:140},{k:'diff',l:'ส่วนต่าง',calc:r=>(String(r.old||'').trim()&&String(r.nw||'').trim()&&!/-\d\d-/.test(r.old))?num(r.nw)-num(r.old):'',w:120}]},{k:'reason',l:'เหตุผล',t:'textarea',w:'full',req:1}]},
+  {h:'รายงานก่อนปิดงบสิ้นปี / ปิดโครงการ',show:d=>d.kind==='รายงานก่อนปิดงบสิ้นปี'||d.kind==='ปิดโครงการ',f:[{k:'progress',l:'ความคืบหน้า (%)',t:'num'},{k:'closeDate',l:'วันที่ปิดโครงการ',t:'date',show:d=>d.kind==='ปิดโครงการ'},
+   {k:'sys',l:'ยอดจากระบบ',t:'note',w:'full'},{k:'spent',l:'งบที่ใช้จริงถึงวันนี้ (บาท)',t:'num',hint:'เว้นว่าง = ใช้ยอดจากระบบ'},{k:'remainTxt',l:'งบคงเหลือ',t:'calc'},
+   {k:'accruals',l:'รับของ / รับงานแล้ว แต่ยังไม่ได้ใบแจ้งหนี้ (บัญชีตั้งค้างจ่าย)',t:'table',cols:[{k:'item',l:'รายการ',w:240},{k:'vendor',l:'ผู้ขาย',w:180},{k:'amount',l:'จำนวนเงินโดยประมาณ',t:'num',w:140}]},
+   {k:'assets',l:'ทรัพย์สินที่ได้จากโครงการ (บัญชีโอนเข้าทะเบียนทรัพย์สิน)',t:'table',show:d=>d.kind==='ปิดโครงการ',cols:[{k:'item',l:'รายการทรัพย์สิน',w:240},{k:'qty',l:'จำนวน',t:'num',w:80},{k:'cost',l:'ต้นทุนรวม',t:'num',w:130},{k:'loc',l:'สถานที่ตั้ง / ผู้ดูแล',w:200}]},
+   {k:'closing',l:'เมื่อปิดโครงการ',t:'checks',show:d=>d.kind==='ปิดโครงการ',o:['แนบรายงานสรุปผล','หยุดรับเอกสารเบิกภายใต้รหัสนี้','ส่งเอกสารค้างทั้งหมดภายใน 15 วัน'],w:'full'},{k:'stopDate',l:'หยุดรับเอกสารเบิกตั้งแต่วันที่',t:'date',show:d=>d.kind==='ปิดโครงการ'}]}],
+ calc(d,doc){const p=projById(d.projectId),u=p?usage(p.id):{committed:0,spent:0,used:0};const used=d.spent===''||d.spent==null?u.used:num(d.spent);const remain=p?r2(p.budget-used):0;
+  return {budget:p?p.budget:0,used,remain,remainTxt:p?money(remain)+' บาท':'',sys:p?'งบโครงการ '+money(p.budget)+' · PR อนุมัติ '+money(u.committed)+' · เบิกจ่ายแล้ว '+money(u.spent)+' · รวมใช้ '+money(u.used)+' บาท':'เลือกโครงการก่อน',acc:sumRows(d.accruals,r=>num(r.amount)),ast:sumRows(d.assets,r=>num(r.cost))}},
+ totals:c=>[['งบโครงการ',c.budget],['ใช้จริง',c.used],['คงเหลือ',c.remain,1,c.remain<0],c.acc?['ตั้งค้างจ่าย',c.acc]:null,c.ast?['ทรัพย์สินโอนเข้าทะเบียน',c.ast]:null],
+ warn(d,c){const w=[];const p=projById(d.projectId);if(p&&p.closed&&d.kind!=='ปิดโครงการ')w.push('โครงการนี้ปิดแล้ว');if(c.remain<0)w.push('ใช้งบเกินแล้ว '+money(-c.remain)+' บาท');return w},
+ title:d=>{const p=projById(d.projectId);return (d.kind||'')+(p?' · '+p.name:'')}}
+};
+const ORDER=['PR','EXP','ADV','TRV','SUB','PJO','PJC'];
+
+/* field metadata lookup */
+function allFields(t){const out=[];T[t].secs.forEach(s=>s.f.forEach(f=>out.push(f)));return out}
+const isReq=(f,d)=>typeof f.req==='function'?f.req(d):!!f.req;
+const shown=(f,d)=>!f.show||f.show(d);
+function missing(doc){const d=doc.data,m=[];T[doc.type].secs.forEach(s=>{if(s.show&&!s.show(d))return;s.f.forEach(f=>{if(!shown(f,d)||!isReq(f,d))return;
+  if(f.t==='table'){if(!(d[f.k]||[]).some(r=>Object.entries(r).some(([k,v])=>k!=='cat'&&String(v??'').trim())))m.push(s.h)}else if(!String(d[f.k]??'').trim())m.push(f.l)})});return m}
+const docAmount=doc=>{const c=T[doc.type].calc(doc.data||{},doc);return doc.type==='PJC'?c.used:c.total};
+const docTitle=doc=>T[doc.type].title(doc.data||{})||T[doc.type].name;
+function statusHTML(doc){const t=T[doc.type];let s=STAT[doc.status]||doc.status;if(doc.status==='pending'){const st=t.steps[doc.step||0];s='รอ: '+(st?st.n.split(' — ')[0].split(' / ')[0]:'อนุมัติ')}
+  if(doc.status==='approved'&&t.done)s=t.done;return `<span class="stamp s-${esc(doc.status)}">${esc(s)}</span>`}
+function nextNo(doc){const d=new Date(),p=T[doc.type].pfx(doc.data||{})+'-'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+'-';let mx=0;
+  DOCS.forEach(x=>{if(x.no&&x.no.startsWith(p)){const n=parseInt(x.no.slice(p.length),10);if(n>mx)mx=n}});return p+String(mx+1).padStart(4,'0')}
+const isMine=doc=>!ME||doc.createdBy===ME||doc.createdBy==='local';
+const stepEmails=doc=>{const st=T[doc.type].steps[doc.step||0];return String(((CFG.emails||{})[st?st.n:''])||'').toLowerCase().split(/[,;\s]+/).filter(Boolean)};
+const canApproveDoc=doc=>doc.status==='pending'&&CAN_WRITE&&(CAN_APPROVE||(!!ME_EMAIL&&stepEmails(doc).includes(ME_EMAIL.toLowerCase())));
+const canEditDoc=doc=>(doc.status==='draft'||doc.status==='rejected')&&(isMine(doc)||CAN_APPROVE);
+
+/* ---------- form renderer ---------- */
+function optHTML(list,v,blank){return (blank?`<option value="">${esc(blank)}</option>`:'')+list.map(o=>{const val=typeof o==='object'?o.v:o,lab=typeof o==='object'?o.l:o;return `<option value="${esc(val)}" ${String(val)===String(v??'')?'selected':''}>${esc(lab)}</option>`}).join('')}
+function projOpts(v){const ps=projects().filter(p=>!p.closed||p.id===v);return optHTML(ps.map(p=>({v:p.id,l:projLabel(p)+(p.active?'':' (รออนุมัติ)')})),v,'— ไม่ระบุ / ค่าใช้จ่ายทั่วไป —')}
+function advOpts(v,doc){const list=DOCS.filter(x=>x.type==='ADV'&&x.status==='approved'&&(x.createdBy===doc.createdBy||CAN_APPROVE||!ME)&&(x.id===v||advState(x)==='open'));
+  return optHTML(list.map(x=>({v:x.id,l:(x.no||'')+' · '+money(advAmt(x))+' บาท · '+(x.data.purpose||'').slice(0,40)})),v,'— เลือกใบทดรอง —')}
+function inputHTML(f,v,path,ro,doc){const dis=ro?'disabled':'',a=`data-k="${esc(path)}" ${dis}`;
+  switch(f.t){
+  case 'textarea':return `<textarea ${a} rows="3">${esc(v)}</textarea>`;
+  case 'select':return `<select ${a}>${optHTML(f.o,v)}</select>`;
+  case 'dept':return `<select ${a}>${optHTML(deptList(),v,'— เลือกแผนก —')}</select>`;
+  case 'project':return `<select ${a}>${projOpts(v)}</select>`;
+  case 'advance':return `<select ${a}>${advOpts(v,doc)}</select>`;
+  case 'radio':return `<div class="seg" role="radiogroup">${f.o.map(o=>`<label><input type="radio" name="${esc(path)}" value="${esc(o)}" ${o===v?'checked':''} ${a}><span>${esc(o)}</span></label>`).join('')}</div>`;
+  case 'checks':return `<div class="chk">${f.o.map(o=>`<label><input type="checkbox" value="${esc(o)}" ${(v||[]).includes(o)?'checked':''} ${a} data-multi="1"><span>${esc(o)}</span></label>`).join('')}</div>`;
+  case 'calc':return `<output data-calc="${esc(f.k)}"></output>`;
+  case 'note':return `<div class="hint" data-calc="${esc(f.k)}"></div>`;
+  case 'num':return `<input type="text" inputmode="decimal" value="${esc(v)}" ${a} data-num="1">`;
+  case 'date':case 'time':return `<input type="${f.t}" value="${esc(v)}" ${a}>`;
+  case 'fixed':return `<span class="fixed">${esc(v)}</span>`;
+  case 'vat':return `<div class="vatc"><input type="text" inputmode="decimal" value="${esc(v)}" ${a} data-num="1">${ro?'':`<button type="button" data-vat="${esc(path)}" title="คำนวณ 7% จากยอดก่อน VAT">7%</button>`}</div>`;
+  default:return `<input type="text" value="${esc(v)}" ${a}>`}}
+function tableHTML(f,d,ro,doc){const rows=d[f.k]||[];return `<div class="scroll"><table class="items"><thead><tr><th>#</th>${f.cols.map(c=>`<th style="min-width:${c.w||120}px" class="${c.calc||c.t==='num'?'r':''}">${esc(c.l)}</th>`).join('')}${ro||f.fixed?'':'<th></th>'}</tr></thead><tbody>
+  ${rows.map((r,i)=>`<tr><td>${i+1}</td>${f.cols.map(c=>`<td>${c.calc?`<output data-rc="${esc(f.k+'.'+i+'.'+c.k)}"></output>`:inputHTML(c,r[c.k],f.k+'.'+i+'.'+c.k,ro,doc)}</td>`).join('')}${ro||f.fixed?'':`<td><button type="button" class="x" data-del="${esc(f.k)}" data-i="${i}" aria-label="ลบแถว ${i+1}">×</button></td>`}</tr>`).join('')}
+  </tbody></table></div>${ro||f.fixed?'':`<button type="button" class="add" data-add="${esc(f.k)}">+ เพิ่มรายการ</button>`}`}
+function formHTML(doc,ro){const t=T[doc.type],d=doc.data;let n=0;return t.secs.map((s,si)=>{const vis=!s.show||s.show(d);if(vis)n++;
+  return `<section class="sec" data-sec="${si}" ${vis?'':'hidden'}><h3><em>${vis?n:''}</em>${esc(s.h)}</h3>${s.sub?`<p class="mut small" style="margin:-4px 0 12px">${esc(s.sub)}</p>`:''}
+  <div class="flds">${s.f.map(f=>f.t==='table'?`<div class="fld full" data-f="${esc(f.k)}" ${shown(f,d)?'':'hidden'}>${f.l?`<span>${esc(f.l)}</span>`:''}${tableHTML(f,d,ro,doc)}</div>`
+   :`<div class="fld ${f.w||''}" data-f="${esc(f.k)}" ${shown(f,d)?'':'hidden'}><span>${esc(f.l)}${isReq(f,d)&&!ro?'<i>*</i>':''}</span>${inputHTML(f,d[f.k],f.k,ro,doc)}${f.hint&&!ro?`<small>${esc(f.hint)}</small>`:''}</div>`).join('')}</div></section>`}).join('')}
+function refresh(doc){const t=T[doc.type],d=doc.data,c=t.calc(d,doc);
+  $$('[data-calc]').forEach(e=>{const v=c[e.dataset.calc];e.textContent=v==null?'':String(v);e.hidden=e.classList.contains('hint')&&!v});
+  t.secs.forEach(s=>s.f.forEach(f=>{if(f.t==='table')(d[f.k]||[]).forEach((r,i)=>f.cols.forEach(cl=>{if(!cl.calc)return;const e=document.querySelector(`[data-rc="${CSS.escape(f.k+'.'+i+'.'+cl.k)}"]`);if(e){const v=cl.calc(r,d);e.textContent=v===''||(!v&&!Object.values(r).some(Boolean))?'':money(v)}}))}));
+  let n=0;t.secs.forEach((s,si)=>{const el=$(`[data-sec="${si}"]`);if(!el)return;const vis=!s.show||s.show(d);el.hidden=!vis;if(vis)el.querySelector('h3 em').textContent=++n;
+    s.f.forEach(f=>{const fe=el.querySelector(`[data-f="${CSS.escape(f.k)}"]`);if(fe)fe.hidden=!shown(f,d)})});
+  const tot=$('#tot');if(tot)tot.innerHTML=t.totals(c).filter(Boolean).map(([l,v,big,neg])=>`<div class="${big?'big':''} ${neg?'neg':''}"><span>${esc(l)}</span><span>${money(v)}</span></div>`).join('')+(c.total?`<div class="words">(${esc(bahtText(c.total))})</div>`:'');
+  const w=$('#warn');if(w){const ws=[...new Set(t.warn(d,c,doc))];w.hidden=!ws.length;w.innerHTML=ws.map(x=>`<p>⚠ ${esc(x)}</p>`).join('')}}
+function setPath(obj,path,val){const ks=path.split('.');let o=obj;for(let i=0;i<ks.length-1;i++){const k=/^\d+$/.test(ks[i])?+ks[i]:ks[i];o=o[k]}o[ks[ks.length-1]]=val}
+function getPath(obj,path){return path.split('.').reduce((o,k)=>o==null?o:o[/^\d+$/.test(k)?+k:k],obj)}
+
+/* ---------- views ---------- */
+const app=$('#app');
+function route(){const h=(location.hash||'#home').slice(1);return h||'home'}
+function render(){const r=route();$$('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.r===r||(r.startsWith('doc-')&&a.dataset.r==='docs')||(r.startsWith('new-')&&a.dataset.r==='new')));
+  if(!r.startsWith('doc-'))EDITING=false;
+  if(r==='home')return vHome();if(r==='new')return vNew();if(r==='docs')return vDocs();if(r==='projects')return vProjects();if(r==='setup')return vSetup();
+  if(r.startsWith('doc-'))return vDoc(r.slice(4));vHome()}
+function paperHTML(x){return `<a class="paper" href="#doc-${esc(x.id)}"><div class="t">${esc(docTitle(x))}</div><div class="a">${money(docAmount(x))}</div>
+  <div class="m">${esc(x.no||'ร่าง')} · ${esc(T[x.type].name)} · ${esc(reqName(x.data||{}))}</div><div>${statusHTML(x)}</div></a>`}
+function vHome(){const mine=DOCS.filter(isMine);const pend=DOCS.filter(x=>x.status==='pending');
+  const advs=DOCS.filter(x=>x.type==='ADV'&&x.status==='approved'&&advState(x)!=='cleared');const advSum=r2(advs.reduce((a,x)=>a+advAmt(x),0));
+  const ym=today().slice(0,7);const monthAppr=r2(DOCS.filter(x=>x.status==='approved'&&String(x.updatedAt||'').slice(0,7)===ym&&x.type!=='PJO'&&x.type!=='PJC'&&x.type!=='SUB').reduce((a,x)=>a+docAmount(x),0));
+  const ps=projects().filter(p=>!p.closed);
+  if(!DOCS.length&&LOADED){app.innerHTML=`<h1>เริ่มต้นใช้งาน</h1><p class="mut">ยังไม่มีเอกสารในระบบ เลือกแบบฟอร์มที่ต้องการ — กรอกบนเว็บ ระบบคำนวณยอด VAT ตัวอักษร และเลขที่เอกสารให้ แล้วส่งอนุมัติต่อได้ทันที</p><div style="margin-top:20px">${typesHTML()}</div>`;bindTypes();return}
+  const myQ=pend.filter(canApproveDoc),isAppr=CAN_APPROVE||myQ.length>0||Object.values(CFG.emails||{}).join(',').toLowerCase().includes((ME_EMAIL||'@@').toLowerCase());
+  app.innerHTML=`<h1>${myQ.length?'มี '+myQ.length+' เอกสารรอคุณอนุมัติ':'ภาพรวมเอกสาร'}</h1><p class="mut">${esc(CFG.name)}</p>
+  <div class="stats"><div class="stat"><b>${pend.length}</b><span>รออนุมัติ</span></div><div class="stat"><b>${mine.filter(x=>x.status==='draft'||x.status==='rejected').length}</b><span>ร่าง / ตีกลับ ของฉัน</span></div>
+   <div class="stat"><b>${money(advSum)}</b><span>เงินทดรองยังไม่เคลียร์ (${advs.length} ใบ)</span></div><div class="stat"><b>${money(monthAppr)}</b><span>ยอดอนุมัติเดือนนี้ (บาท)</span></div></div>
+  <div class="cols"><div>
+   ${isAppr?`<h2>ถาดรอคุณอนุมัติ</h2><div class="tray">${myQ.length?myQ.sort((a,b)=>String(a.updatedAt).localeCompare(b.updatedAt)).map(paperHTML).join(''):'<div class="empty">ไม่มีเอกสารรออนุมัติ</div>'}</div><div style="height:28px"></div>`:''}
+   <div class="row" style="justify-content:space-between"><h2>เอกสารของฉัน</h2><a class="btn pri" href="#new">+ สร้างเอกสาร</a></div>
+   <div class="tray" style="margin-top:8px">${mine.length?mine.sort((a,b)=>String(b.updatedAt).localeCompare(a.updatedAt)).slice(0,8).map(paperHTML).join(''):'<div class="empty">ยังไม่มีเอกสารของคุณ</div>'}</div>
+  </div><div>
+   <h2>งบโครงการ</h2>${ps.length?ps.map(projBar).join('')+legend():'<div class="empty">ยังไม่มีโครงการ — สร้าง “ใบแจ้งเปิดโครงการ” ก่อนออก PR ใบแรก</div>'}
+   <h2 style="margin-top:28px">เงินทดรองค้างเคลียร์</h2>${advs.length?`<div class="tray">${advs.map(x=>{const od=x.data.returnDue&&x.data.returnDue<today();return `<a class="paper" href="#doc-${esc(x.id)}"><div class="t">${esc(x.no)} · ${esc(x.data.requester||'')}</div><div class="a">${money(advAmt(x))}</div><div class="m">${od?'<b style="color:var(--red)">เกินกำหนด</b> ':''}คืนภายใน ${esc(thDate(x.data.returnDue,1))}</div><div><span class="stamp ${od?'s-rejected':'s-pending'}">${advState(x)==='clearing'?'กำลังเคลียร์':od?'เกินกำหนด':'ค้างเคลียร์'}</span></div></a>`}).join('')}</div>`:'<div class="empty">ไม่มีเงินทดรองค้าง</div>'}
+  </div></div>`}
+function projBar(p){const u=usage(p.id),B=p.budget||1,pc=Math.min(100,u.committed/B*100),ps=Math.min(100-pc,u.spent/B*100),over=u.used>p.budget;
+  return `<div class="proj"><div class="h"><a href="#doc-${esc(p.id)}" style="color:inherit;font-weight:600">${esc(projLabel(p))}</a><span class="r">${money(u.used)} / ${money(p.budget)}</span></div>
+  <div class="bar"><i class="c" style="width:${pc}%"></i><i class="${over?'o':'s'}" style="width:${ps}%"></i></div><div class="mut small" style="margin-top:4px">${p.active?'':'รออนุมัติ · '}คงเหลือ ${money(p.budget-u.used)} บาท${p.end?' · สิ้นสุด '+esc(thDate(p.end,1)):''}</div></div>`}
+const legend=()=>`<div class="legend"><span><i style="background:color-mix(in srgb,var(--blue) 45%,transparent)"></i>PR อนุมัติ (ผูกพัน)</span><span><i style="background:var(--blue)"></i>เบิกจ่ายแล้ว</span></div>`;
+function typesHTML(){return `<div class="types">${ORDER.map(k=>`<button class="type" data-type="${k}"><span class="code">${esc(T[k].en)}</span><b>${esc(T[k].name)}</b><span>${esc(T[k].desc)}</span></button>`).join('')}</div>`}
+function bindTypes(){$$('[data-type]').forEach(b=>b.onclick=()=>newDoc(b.dataset.type))}
+function vNew(){app.innerHTML=`<h1>สร้างเอกสาร</h1><p class="mut">เลือกแบบฟอร์ม — ทุกใบบันทึกอัตโนมัติเป็นร่างระหว่างกรอก</p><div style="margin-top:20px">${typesHTML()}</div>`;bindTypes()}
+function newDoc(type,data){const id=uid();const t=T[type];const d=data?clone(data):t.init();
+  if(!data){const me=ME&&PROF[ME];['requester','traveler','payer','reporter','lead'].forEach(k=>{if(allFields(type).some(f=>f.k===k)&&me)d[k]=me})}
+  NEW[id]={id,type,no:'',status:'draft',step:0,data:d,reqEmail:ME_EMAIL,createdBy:ME||'local',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),log:[]};location.hash='doc-'+id}
+let F={type:'',status:'',q:'',mine:false};
+function filtered(){const q=F.q.trim().toLowerCase();return DOCS.filter(x=>(!F.type||x.type===F.type)&&(!F.status||x.status===F.status)&&(!F.mine||isMine(x))&&(!q||[x.no,docTitle(x),reqName(x.data||{}),T[x.type].name].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(b.updatedAt).localeCompare(a.updatedAt))}
+function vDocs(){app.innerHTML=`<div class="row" style="justify-content:space-between"><h1>เอกสารทั้งหมด</h1><div class="row"><button class="btn" id="csv">ส่งออก CSV</button><a class="btn pri" href="#new">+ สร้างเอกสาร</a></div></div>
+  <div class="filters"><input id="fq" placeholder="ค้นหาเลขที่ เรื่อง ชื่อผู้ขอ" value="${esc(F.q)}" aria-label="ค้นหา"><select id="ft" aria-label="ประเภท">${optHTML(ORDER.map(k=>({v:k,l:T[k].name})),F.type,'ทุกประเภท')}</select>
+  <select id="fs" aria-label="สถานะ">${optHTML(Object.entries(STAT).map(([v,l])=>({v,l})),F.status,'ทุกสถานะ')}</select><label class="row" style="flex:0 0 auto;min-height:44px"><input type="checkbox" id="fm" style="width:20px;min-height:0" ${F.mine?'checked':''}> เฉพาะของฉัน</label></div>
+  <div id="lst"></div>`;
+  const upd=()=>{const L=filtered();$('#lst').innerHTML=L.length?`<table class="list stack"><thead><tr><th>เลขที่</th><th>ประเภท</th><th>เรื่อง</th><th>ผู้ขอ</th><th class="r">จำนวนเงิน</th><th>สถานะ</th><th>อัปเดต</th></tr></thead><tbody>${L.map(x=>`<tr data-href="#doc-${esc(x.id)}" tabindex="0"><td><b>${esc(x.no||'ร่าง')}</b></td><td>${esc(T[x.type].name)}</td><td>${esc(docTitle(x).slice(0,80))}</td><td>${esc(reqName(x.data||{}))}</td><td class="r">${money(docAmount(x))}</td><td>${statusHTML(x)}</td><td class="mut small">${esc(thDate(String(x.updatedAt).slice(0,10),1))}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">ไม่พบเอกสาร</div>';
+   $$('#lst tr[data-href]').forEach(tr=>{tr.onclick=()=>location.hash=tr.dataset.href;tr.onkeydown=e=>{if(e.key==='Enter')location.hash=tr.dataset.href}})};
+  $('#fq').oninput=e=>{F.q=e.target.value;upd()};$('#ft').onchange=e=>{F.type=e.target.value;upd()};$('#fs').onchange=e=>{F.status=e.target.value;upd()};$('#fm').onchange=e=>{F.mine=e.target.checked;upd()};
+  $('#csv').onclick=()=>{const L=filtered();const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const rows=[['เลขที่','ประเภท','เรื่อง','ผู้ขอ','โครงการ','จำนวนเงิน','สถานะ','วันที่สร้าง','อัปเดต']].concat(L.map(x=>[x.no,T[x.type].name,docTitle(x),reqName(x.data||{}),projLabel(projById((x.data||{}).projectId)),docAmount(x).toFixed(2),STAT[x.status],String(x.createdAt).slice(0,10),String(x.updatedAt).slice(0,10)]));
+   download('เอกสาร-'+today()+'.csv','﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'))};upd()}
+function vProjects(){const ps=projects();app.innerHTML=`<div class="row" style="justify-content:space-between"><h1>โครงการ</h1><div class="row"><button class="btn" data-type="PJC">แจ้งเปลี่ยนแปลง / ปิด</button><button class="btn pri" data-type="PJO">+ แจ้งเปิดโครงการ</button></div></div>
+  ${ps.length?`<table class="list stack" style="margin-top:16px"><thead><tr><th>รหัส</th><th>ชื่อโครงการ</th><th>หัวหน้า</th><th>ระยะเวลา</th><th class="r">งบ</th><th class="r">PR อนุมัติ</th><th class="r">เบิกจ่าย</th><th class="r">คงเหลือ</th><th>สถานะ</th></tr></thead><tbody>
+  ${ps.map(p=>{const u=usage(p.id),left=r2(p.budget-u.used);return `<tr data-href="#doc-${esc(p.id)}" tabindex="0"><td><b>${esc(p.code||'—')}</b></td><td>${esc(p.name)}</td><td>${esc(p.lead||'')}</td><td class="small">${esc(thDate(p.start,1))} – ${esc(thDate(p.end,1))}</td><td class="r">${money(p.budget)}</td><td class="r">${money(u.committed)}</td><td class="r">${money(u.spent)}</td><td class="r" style="${left<0?'color:var(--red)':''}">${money(left)}</td><td><span class="stamp ${p.closed?'s-draft':p.active?'s-approved':'s-pending'}">${p.closed?'ปิดแล้ว':p.active?'ดำเนินการ':'รออนุมัติ'}</span></td></tr>`}).join('')}</tbody></table>`:'<div class="empty" style="margin-top:16px">ยังไม่มีโครงการ</div>'}
+  <p class="mut small" style="margin-top:14px">งบ = ไม่รวม VAT · PR อนุมัติ = มูลค่าก่อน VAT ของใบขอซื้อที่อนุมัติครบ · เบิกจ่าย = ใบขอเบิก (ก่อน VAT) + ค่าเดินทาง ที่อนุมัติครบ</p>`;
+  bindTypes();$$('tr[data-href]').forEach(tr=>{tr.onclick=()=>location.hash=tr.dataset.href;tr.onkeydown=e=>{if(e.key==='Enter')location.hash=tr.dataset.href}})}
+function vSetup(){const ro=!CAN_CFG;app.innerHTML=`<h1>ตั้งค่าบริษัท</h1><p class="mut">ข้อมูลนี้พิมพ์บนหัวเอกสารทุกใบ${ro?' — เฉพาะผู้ดูแล (Editor) แก้ไขได้':''}</p>
+  <div class="sec" style="max-width:760px;margin-top:18px"><div class="flds">
+   <div class="fld full"><span>ชื่อบริษัท</span><input id="c_name" value="${esc(CFG.name)}" ${ro?'disabled':''}></div>
+   <div class="fld full"><span>ที่อยู่</span><textarea id="c_addr" rows="2" ${ro?'disabled':''}>${esc(CFG.addr)}</textarea></div>
+   <div class="fld"><span>เลขประจำตัวผู้เสียภาษี</span><input id="c_tax" value="${esc(CFG.tax)}" inputmode="numeric" ${ro?'disabled':''}></div>
+   <div class="fld"><span>อัตรา VAT (%)</span><input id="c_vat" value="${esc(CFG.vat)}" inputmode="decimal" ${ro?'disabled':''}></div>
+   <div class="fld"><span>เบี้ยเลี้ยงต่อวัน (บาท)</span><input id="c_perDiem" value="${esc(CFG.perDiem)}" inputmode="decimal" ${ro?'disabled':''}></div>
+   <div class="fld"><span>ค่าน้ำมัน (บาท/กม.)</span><input id="c_fuel" value="${esc(CFG.fuel)}" inputmode="decimal" ${ro?'disabled':''}></div>
+   <div class="fld full"><span>รายชื่อแผนก (คั่นด้วยจุลภาค)</span><input id="c_depts" value="${esc(CFG.depts)}" ${ro?'disabled':''}><small>ตัวย่อภาษาอังกฤษจะใช้ในเลขที่ PR เช่น IT → PR-IT-202611-0001</small></div>
+  </div>${ro?'':'<div class="row" style="margin-top:16px"><button class="btn pri" id="c_save">บันทึกการตั้งค่า</button></div>'}</div>
+  <div class="sec" style="max-width:760px"><h3>อีเมลผู้อนุมัติ</h3><p class="mut small" style="margin:-4px 0 12px">คนที่มีอีเมลตรงกับช่องไหน จะกดอนุมัติขั้นนั้นได้ และใช้เป็นผู้รับอีเมลขออนุมัติ · ใส่ได้หลายอีเมลคั่นด้วยจุลภาค · ต้องเป็นอีเมลเดียวกับที่ใช้ล็อกอิน Claude</p><div class="flds">
+   ${roles().map((r,i)=>`<div class="fld"><span>${esc(r)}</span><input type="email" multiple data-role="${i}" value="${esc((CFG.emails||{})[r]||'')}" placeholder="name@company.com" ${ro?'disabled':''}></div>`).join('')}
+   <div class="fld full"><span>ลิงก์ของระบบนี้ (ใส่ในอีเมล)</span><input id="c_appUrl" value="${esc(CFG.appUrl)}" ${ro?'disabled':''}></div></div></div>
+  <div class="sec" style="max-width:760px"><h3>สิทธิ์การใช้งาน</h3><p class="small" style="margin:0">ทุกคนต้องได้สิทธิ์ <b>Contributor</b> ขึ้นไปจากปุ่ม Share จึงจะสร้าง ส่ง และอนุมัติเอกสารได้ (Viewer ดูได้อย่างเดียว) · ผู้อนุมัติ = คนที่มีอีเมลตามตารางด้านบน หรือคนที่มีสิทธิ์ Editor / Owner (อนุมัติได้ทุกขั้น) · คุณ: <b>${esc(ME_EMAIL||'ไม่ทราบอีเมล')}</b> · <b>${!CAN_WRITE?'ดูอย่างเดียว':CAN_APPROVE?'ผู้ดูแล — อนุมัติได้ทุกขั้น':'ผู้ใช้ทั่วไป'}</b>${LOCAL?' · <span style="color:var(--amber)">โหมดออฟไลน์: ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น</span>':''}</p></div>`;
+  const s=$('#c_save');if(s)s.onclick=async()=>{['name','addr','tax','vat','perDiem','fuel','depts','appUrl'].forEach(k=>CFG[k]=$('#c_'+k).value.trim());const rs=roles(),em={};$$('[data-role]').forEach(i=>{if(i.value.trim())em[rs[+i.dataset.role]]=i.value.trim()});CFG.emails=em;await saveCfg();applyCfg();toast('บันทึกการตั้งค่าแล้ว')}}
+function applyCfg(){$('#coName').textContent=CFG.name||'ใบขอซื้อ · เบิกจ่าย · ทดรองจ่าย · โครงการ'}
+
+/* ---------- document view ---------- */
+function vDoc(id){const src=NEW[id]||DOCS.find(x=>x.id===id);
+  if(!src){app.innerHTML=LOADED?'<div class="empty">ไม่พบเอกสารนี้ อาจถูกลบไปแล้ว <a href="#docs">กลับไปรายการเอกสาร</a></div>':'<p class="mut">กำลังโหลดเอกสาร…</p>';return}
+  const ed=canEditDoc(src);if(!(EDITING&&EDIT&&EDIT.id===id))EDIT=clone(src);EDITING=ed;DIRTY=false;const doc=EDIT,t=T[doc.type];
+  const p=projById(doc.data.projectId);
+  app.innerHTML=`<div class="dochead"><div><a href="#docs" class="mut small">← เอกสารทั้งหมด</a><h1 style="margin-top:6px">${esc(t.name)}</h1>
+   <div class="row mut small"><span>${esc(t.en)}</span><span>·</span><b style="color:var(--ink)">${esc(doc.no||'ยังไม่ออกเลข (ออกเมื่อส่งอนุมัติ)')}</b>${doc.type==='PJO'&&doc.data.projCode?`<span>· รหัสโครงการ <b style="color:var(--ink)">${esc(doc.data.projCode)}</b></span>`:''}<span class="save" id="savest"></span></div></div>${statusHTML(doc)}</div>
+  ${doc.status==='rejected'?`<div class="warn" style="margin-bottom:16px"><p>เอกสารถูกตีกลับ: ${esc((doc.log||[]).filter(l=>l.act==='reject').slice(-1)[0]?.note||'—')} — แก้ไขแล้วส่งอนุมัติอีกครั้งได้</p></div>`:''}
+  <div class="sheet"><form id="form" autocomplete="off" onsubmit="return false">${formHTML(doc,!ed)}</form>
+  <aside class="side"><div class="card"><h3>ยอดรวม</h3><div class="tot" id="tot"></div></div><div class="warn" id="warn" hidden></div>
+   <div class="card"><h3>ขั้นตอนอนุมัติ</h3>${stepsHTML(doc)}</div><div class="card actions" id="acts">${actionsHTML(doc,ed)}</div></aside></div>`;
+  refresh(doc);fillNames();bindForm(doc,ed);bindActions(doc)}
+function stepsHTML(doc){const t=T[doc.type],log=doc.log||[];const sub=log.filter(l=>l.act==='submit').slice(-1)[0];
+  const items=[{n:'ผู้ขอ / ผู้จัดทำ',d:'ส่งเอกสาร',state:doc.status!=='draft'?'ok':'now',l:sub}].concat(t.steps.map((s,i)=>{const l=log.filter(x=>x.step===i&&(x.act==='approve'||x.act==='reject')).slice(-1)[0];
+   let st='';if(doc.status==='approved'||(doc.status==='pending'&&i<doc.step))st='ok';else if(doc.status==='pending'&&i===doc.step)st='now';else if(doc.status==='rejected'&&l&&l.act==='reject'&&i===doc.step)st='no';
+   return {n:s.n,d:s.d,state:st,l:st?l:null}}));
+  return `<ol class="steps">${items.map((s,i)=>`<li class="${s.state}"><span class="dot">${s.state==='ok'?'✓':s.state==='no'?'×':i+1}</span><div><b>${esc(s.n)}</b>${s.l?`<small><span data-uid="${esc(s.l.by)}" data-fb="${esc(s.l.name||'')}"></span> · ${esc(thDate(String(s.l.at).slice(0,10),1))}${s.l.note?' · '+esc(s.l.note):''}${s.l.amount!=null?' · อนุมัติ '+money(s.l.amount)+' บาท':''}</small>`:s.d?`<small>${esc(s.d)}</small>`:''}</div></li>`).join('')}</ol>`}
+function actionsHTML(doc,ed){const t=T[doc.type],b=[];
+  if(ed){b.push(`<button class="btn pri" id="a_submit">${doc.status==='rejected'?'ส่งอนุมัติอีกครั้ง':'ส่งอนุมัติ'}</button>`,`<button class="btn" id="a_save">บันทึกร่าง</button>`)}
+  if(canApproveDoc(doc)){const s=t.steps[doc.step||0];b.push(`<button class="btn pri" id="a_ok">${esc(s.verb||'อนุมัติ')} — ${esc(s.n.split(' — ')[0])}</button>`,`<button class="btn danger" id="a_no">ไม่อนุมัติ / ตีกลับ</button>`)}
+  if(doc.status==='pending'&&isMine(doc)&&!doc.step)b.push(`<button class="btn" id="a_back">ดึงกลับมาแก้ไข</button>`);
+  if(doc.status==='pending'&&!canApproveDoc(doc)){const em=stepEmails(doc);b.push(`<p class="small mut" style="margin:0">${!CAN_WRITE?'คุณมีสิทธิ์ดูอย่างเดียว จึงกดอนุมัติไม่ได้ — ให้เจ้าของหน้าแชร์เป็น Contributor ขึ้นไป':em.length?'ผู้อนุมัติขั้นนี้: '+esc(em.join(', '))+(ME_EMAIL?' (คุณ: '+esc(ME_EMAIL)+')':''):'ขั้นนี้ยังไม่ได้กำหนดอีเมลผู้อนุมัติ — ตั้งได้ที่หน้า “ตั้งค่า”'}</p>`)}
+  if(doc.status==='pending')b.push(`<button class="btn" id="a_mail">✉ ส่งอีเมลขออนุมัติ</button>`);
+  if(doc.status==='approved'||doc.status==='rejected')b.push(`<button class="btn" id="a_mail2">✉ แจ้งผลทางอีเมล</button>`);
+  if(DOCS.some(x=>x.id===doc.id)||doc.status!=='draft')b.push(`<button class="btn" id="a_print">ดาวน์โหลดแบบฟอร์ม (Excel / พิมพ์)</button>`);
+  b.push(`<button class="btn" id="a_dup">ทำสำเนาเป็นใบใหม่</button>`);
+  if(doc.type==='ADV'&&doc.status==='approved'&&advState(doc)==='open')b.push(`<button class="btn" id="a_clear">เคลียร์เงินทดรองนี้</button>`);
+  if(doc.type==='PJO'&&doc.status==='approved')b.push(`<button class="btn" id="a_pr">ออก PR ภายใต้โครงการนี้</button>`);
+  if(doc.status==='draft'&&(isMine(doc)||CAN_APPROVE)&&DOCS.some(x=>x.id===doc.id))b.push(`<button class="btn danger" id="a_del">ลบร่าง</button>`);
+  return b.join('')}
+function markDirty(doc){DIRTY=true;const s=$('#savest');if(s)s.textContent='· กำลังบันทึก…';clearTimeout(saveT);saveT=setTimeout(async()=>{if(!EDIT||EDIT.id!==doc.id)return;try{await saveDoc(EDIT);DIRTY=false;const s2=$('#savest');if(s2)s2.textContent='· บันทึกร่างอัตโนมัติแล้ว';refreshActs()}catch(e){}},1200)}
+function bindForm(doc,ed){const form=$('#form');if(!ed)return;
+  const onIn=e=>{const el=e.target,k=el.dataset.k;if(!k)return;let v;
+   if(el.dataset.multi){v=[...form.querySelectorAll(`[data-k="${CSS.escape(k)}"]:checked`)].map(x=>x.value)}else if(el.type==='radio'){if(!el.checked)return;v=el.value}else v=el.value;
+   if(el.dataset.num)v=v.replace(/[^\d.\-]/g,'')===''?'':v.replace(/[^\d.\-]/g,'');
+   setPath(doc.data,k,v);if(el.dataset.num&&el.value!==v&&e.type==='change')el.value=v;
+   if(k==='projectId'&&doc.type==='PJC'&&e.type==='change'){const p=projById(v);if(p&&!doc.data.reporter)doc.data.reporter=p.lead||''}
+   if(k==='advRef'&&e.type==='change'){const a=DOCS.find(x=>x.id===v);if(a){['requester','position','dept'].forEach(f=>{if(!doc.data[f])doc.data[f]=a.data[f]||''});if(!doc.data.purpose)doc.data.purpose='เคลียร์เงินทดรอง '+a.no+' — '+(a.data.purpose||'');rerender(doc);markDirty(doc);return}}
+   refresh(doc);markDirty(doc)};
+  form.addEventListener('input',onIn);form.addEventListener('change',onIn);
+  form.addEventListener('click',e=>{const a=e.target.closest('[data-add]'),x=e.target.closest('[data-del]'),v=e.target.closest('[data-vat]');
+   if(a){(doc.data[a.dataset.add]=doc.data[a.dataset.add]||[]).push({});rerender(doc);markDirty(doc);const ins=$$(`[data-k^="${a.dataset.add}."]`);const last=ins.filter(i=>i.dataset.k.startsWith(a.dataset.add+'.'+(doc.data[a.dataset.add].length-1)+'.'))[0];last&&last.focus()}
+   if(x){doc.data[x.dataset.del].splice(+x.dataset.i,1);if(!doc.data[x.dataset.del].length)doc.data[x.dataset.del].push({});rerender(doc);markDirty(doc)}
+   if(v){const base=v.dataset.vat.replace(/\.vat$/,''),r=getPath(doc.data,base);r.vat=r2(num(r.net)*vatRate()).toFixed(2);v.previousElementSibling.value=r.vat;refresh(doc);markDirty(doc)}})}
+function refreshActs(){const a=$('#acts');if(a&&EDIT&&!a.querySelector('#a_print')){a.innerHTML=actionsHTML(EDIT,EDITING);bindActions(EDIT)}}
+function rerender(doc){const y=scrollY;$('#form').innerHTML=formHTML(doc,false);refresh(doc);scrollTo(0,y)}
+function bindActions(doc){const on=(id,fn)=>{const e=$('#'+id);if(e)e.onclick=fn};
+  on('a_save',async()=>{clearTimeout(saveT);await saveDoc(EDIT);toast('บันทึกร่างแล้ว');$('#savest').textContent='· บันทึกแล้ว';refreshActs()});
+  on('a_submit',async()=>{const m=missing(EDIT);if(m.length){toast('กรอกให้ครบก่อน: '+m.slice(0,4).join(', ')+(m.length>4?' …':''));const f=$('[data-f] :is(input,select,textarea)');return}
+   const amt=docAmount(EDIT);if(!(await ask('ส่ง'+T[EDIT.type].name+(amt?' ยอด '+money(amt)+' บาท':'')+' เพื่ออนุมัติ?','ส่งอนุมัติ')))return;
+   clearTimeout(saveT);if(!EDIT.no)EDIT.no=nextNo(EDIT);EDIT.status='pending';EDIT.step=0;(EDIT.log=EDIT.log||[]).push({act:'submit',by:ME||'local',name:reqName(EDIT.data),at:new Date().toISOString()});
+   if(!EDIT.reqEmail&&ME_EMAIL)EDIT.reqEmail=ME_EMAIL;EDITING=false;const sent=EDIT;await saveDoc(EDIT);toast('ส่งแล้ว เลขที่ '+EDIT.no);render();mailDlg(sent,'ask')});
+  on('a_ok',()=>approveDlg(doc));on('a_no',()=>rejectDlg(doc));
+  on('a_back',async()=>{if(!(await ask('ดึงเอกสารกลับมาเป็นร่างเพื่อแก้ไข?','ดึงกลับ')))return;const d=clone(doc);d.status='draft';d.step=0;d.log.push({act:'withdraw',by:ME||'local',at:new Date().toISOString()});EDITING=false;EDIT=null;await saveDoc(d);render()});
+  on('a_print',()=>printDlg(doc));on('a_mail',()=>mailDlg(doc,'ask'));on('a_mail2',()=>mailDlg(doc,'result'));on('a_dup',()=>{const d=clone(doc.data);if(doc.type==='PJO'){delete d.projCode;delete d.setupDate;delete d.acctChecks}EDITING=false;newDoc(doc.type,d)});
+  on('a_clear',()=>{EDITING=false;const d=T.EXP.init();Object.assign(d,{kind:'เคลียร์เงินทดรองจ่าย',advRef:doc.id,requester:doc.data.requester,position:doc.data.position,dept:doc.data.dept,purpose:'เคลียร์เงินทดรอง '+doc.no+' — '+(doc.data.purpose||'')});newDoc('EXP',d)});
+  on('a_pr',()=>{EDITING=false;const d=T.PR.init();d.projectId=doc.id;d.purpose=doc.data.ptype==='โครงการวิจัย'?PURP[1]:PURP[0];newDoc('PR',d)});
+  on('a_del',async()=>{if(!(await ask('ลบร่างนี้ถาวร? กู้คืนไม่ได้','ลบ',1)))return;clearTimeout(saveT);EDITING=false;EDIT=null;await removeDoc(doc.id);location.hash='docs'})}
+function approveDlg(doc){if(!canApproveDoc(doc)){toast('คุณไม่มีสิทธิ์อนุมัติขั้นนี้');return}const t=T[doc.type],s=t.steps[doc.step||0],self=isMine(doc)&&ME;const total=docAmount(doc);
+  const m=modal(`<h3>${esc(s.verb||'อนุมัติ')}: ${esc(s.n)}</h3><p class="mut small">${esc(doc.no)} · ${esc(docTitle(doc))} · ${money(total)} บาท</p>
+   ${self?'<div class="warn" style="margin:10px 0"><p>คุณเป็นผู้สร้างเอกสารนี้เอง</p></div>':''}
+   ${s.partial?`<div class="fld" style="margin:12px 0"><span>ผลการอนุมัติ</span><div class="seg"><label><input type="radio" name="pa" value="full" checked><span>อนุมัติเต็มจำนวน</span></label><label><input type="radio" name="pa" value="part"><span>อนุมัติบางส่วน</span></label></div><input id="pamt" placeholder="จำนวนเงินที่อนุมัติ (บาท)" inputmode="decimal" hidden style="margin-top:8px"></div>`:''}
+   ${(s.fields||[]).map(f=>`<div class="fld" style="margin:12px 0"><span>${esc(f.l)}${f.req?'<i>*</i>':''}</span><input id="sf_${esc(f.k)}" type="${f.t==='date'?'date':'text'}" value="${esc(doc.data[f.k]||(f.t==='date'?today():''))}"></div>`).join('')}
+   ${s.checks?`<div class="chk" style="margin:12px 0">${s.checks.map(c=>`<label><input type="checkbox" class="sck" value="${esc(c)}" checked><span>${esc(c)}</span></label>`).join('')}</div>`:''}
+   <div class="fld" style="margin:12px 0"><span>หมายเหตุ</span><textarea id="anote" rows="2"></textarea></div>
+   <div class="row" style="justify-content:flex-end"><button class="btn" data-close>ยกเลิก</button><button class="btn pri" id="aok">${esc(s.verb||'อนุมัติ')}</button></div>`);
+  m.querySelectorAll('[name=pa]').forEach(r=>r.onchange=()=>{m.querySelector('#pamt').hidden=r.value!=='part'||!r.checked});
+  m.querySelector('#aok').onclick=async()=>{const d=clone(DOCS.find(x=>x.id===doc.id)||doc);if(d.status!=='pending'||d.step!==doc.step){m.close();toast('เอกสารนี้มีการเปลี่ยนแปลงแล้ว');render();return}
+   const entry={act:'approve',step:d.step,by:ME||'local',name:PROF[ME]||'',at:new Date().toISOString(),note:m.querySelector('#anote').value.trim()};
+   for(const f of s.fields||[]){const v=m.querySelector('#sf_'+f.k).value.trim();if(f.req&&!v){toast('กรอก '+f.l);return}d.data[f.k]=v}
+   if(s.checks)d.data.acctChecks=[...m.querySelectorAll('.sck:checked')].map(x=>x.value);
+   if(s.partial&&m.querySelector('[name=pa]:checked').value==='part'){const a=num(m.querySelector('#pamt').value);if(!a){toast('ใส่จำนวนเงินที่อนุมัติ');return}entry.amount=a;d.data.approvedAmount=a}
+   d.log=(d.log||[]).concat(entry);d.step=(d.step||0)+1;if(d.step>=t.steps.length)d.status='approved';m.close();await saveDoc(d);toast('บันทึกผลแล้ว');render();mailDlg(d,d.status==='pending'?'ask':'result')}}
+function rejectDlg(doc){const m=modal(`<h3>ไม่อนุมัติ / ตีกลับ</h3><p class="mut small">${esc(doc.no)} จะกลับไปให้ผู้ขอแก้ไขและส่งใหม่ได้</p><div class="fld" style="margin:12px 0"><span>เหตุผล<i style="color:var(--red)">*</i></span><textarea id="rnote" rows="3"></textarea></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" data-close>ยกเลิก</button><button class="btn redf" id="rok">ไม่อนุมัติ</button></div>`);
+  m.querySelector('#rok').onclick=async()=>{const note=m.querySelector('#rnote').value.trim();if(!note){toast('ใส่เหตุผล');return}const d=clone(DOCS.find(x=>x.id===doc.id)||doc);
+   d.log=(d.log||[]).concat({act:'reject',step:d.step,by:ME||'local',name:PROF[ME]||'',at:new Date().toISOString(),note});d.status='rejected';m.close();await saveDoc(d);render();mailDlg(d,'result')}}
+
+
+/* ---------- email ---------- */
+const roles=()=>[...new Set(ORDER.flatMap(k=>T[k].steps.map(s=>s.n)))];
+const docLink=doc=>(CFG.appUrl||'').replace(/#.*$/,'')+'#doc-'+doc.id;
+function itemLines(doc){const d=doc.data||{};const L={PR:()=>filled(d.items,['desc','qty','price']).map(r=>`${r.desc||''}${r.spec?' ('+r.spec+')':''} × ${r.qty||0} ${r.unit||''} = ${money(num(r.qty)*num(r.price))}`),
+  EXP:()=>filled(d.items,['detail','net','receipt']).map(r=>`${thDate(r.payDate,1)} ${r.payee||''} ${r.detail||''} = ${money(num(r.net)+num(r.vat))}`),ADV:()=>filled(d.items,['desc','amount']).map(r=>`${r.desc||''} = ${money(r.amount)}`),
+  TRV:()=>{const c=T.TRV.calc(d);return [`ค่าพาหนะ ${money(c.fare)}`,`เบี้ยเลี้ยง ${c.pdd} วัน ${money(c.perDiem)}`,c.fuel?`ค่าน้ำมัน ${money(c.fuel)}`:'',c.toll?`ทางด่วน ${money(c.toll)}`:'',c.other?`อื่น ๆ ${money(c.other)}`:''].filter(Boolean)},
+  SUB:()=>filled(d.items,['detail','amount']).map(r=>`${thDate(r.date,1)} ${r.detail||''} = ${money(r.amount)}`),
+  PJO:()=>(d.budget||[]).filter(r=>num(r.amount)).map(r=>`${r.cat} = ${money(r.amount)}`),PJC:()=>filled(d.changes,['item','old','nw']).map(r=>`${r.item}: ${r.old||'-'} → ${r.nw||'-'}`)}[doc.type];
+  const ls=L?L():[];return ls.slice(0,12).map((x,i)=>`  ${i+1}. ${x}`).concat(ls.length>12?[`  … และอีก ${ls.length-12} รายการ`]:[])}
+function mailDraft(doc,kind){const t=T[doc.type],d=doc.data||{},amt=docAmount(doc),p=projById(d.projectId),st=t.steps[doc.step||0];
+  const head=[`เลขที่: ${doc.no||'-'}`,`ประเภท: ${t.name}`,`เรื่อง: ${docTitle(doc)}`,`ผู้ขอ: ${reqName(d)}${d.dept?' (แผนก '+d.dept+')':''}`,p?`โครงการ: ${projLabel(p)}`:'',amt?`จำนวนเงิน: ${money(amt)} บาท (${bahtText(amt)})`:''].filter(Boolean);
+  const items=itemLines(doc);const link=docLink(doc);
+  if(kind==='ask'){const to=(CFG.emails||{})[st?st.n:'']||'';
+    const prev=(doc.log||[]).filter(l=>l.act==='approve').map(l=>`  ✓ ${t.steps[l.step]?.n||''}: ${nameOf(l.by)||l.name||''} ${thDate(String(l.at).slice(0,10),1)}${l.note?' — '+l.note:''}`);
+    return {to,subject:`[ขออนุมัติ] ${t.name} ${doc.no||''} — ${docTitle(doc).slice(0,60)}${amt?' ('+money(amt)+' บาท)':''}`,
+     body:[`เรียน ${st?st.n:'ผู้อนุมัติ'}`,'',`ขอความกรุณาพิจารณาอนุมัติ${t.name} รายละเอียดดังนี้`,'',...head,...(items.length?['','รายการ:',...items]:[]),...(prev.length?['','ผ่านการอนุมัติแล้ว:',...prev]:[]),'',`ขั้นตอนที่รอ: ${st?st.n:'-'}`,'',`เปิดเอกสารเพื่ออนุมัติ / ไม่อนุมัติ:`,link,'','ขอบคุณครับ/ค่ะ',PROF[ME]||reqName(d)].join('\n')}}
+  const last=(doc.log||[]).filter(l=>l.act==='approve'||l.act==='reject').slice(-1)[0]||{};const ok=doc.status==='approved';
+  return {to:doc.reqEmail||'',subject:`[${ok?(t.done||'อนุมัติแล้ว'):'ไม่อนุมัติ / ตีกลับ'}] ${t.name} ${doc.no||''} — ${docTitle(doc).slice(0,60)}`,
+   body:[`เรียน คุณ${reqName(d)}`,'',ok?`${t.name} เลขที่ ${doc.no} ได้รับการอนุมัติครบทุกขั้นตอนแล้ว`:`${t.name} เลขที่ ${doc.no} ไม่ได้รับการอนุมัติ / ถูกตีกลับให้แก้ไข`,'',...head,...(last.note?['',`หมายเหตุจากผู้อนุมัติ: ${last.note}`]:[]),...(last.amount!=null?[`อนุมัติจำนวน: ${money(last.amount)} บาท`]:[]),'',ok?'ดูเอกสาร / ดาวน์โหลดแบบฟอร์ม:':'แก้ไขและส่งใหม่ได้ที่:',link,'',PROF[ME]||''].join('\n')}}
+function mailDlg(doc,kind){const m0=mailDraft(doc,kind);const st=T[doc.type].steps[doc.step||0];
+  const m=modal(`<h3>${kind==='ask'?'ส่งอีเมลขออนุมัติ':'แจ้งผลทางอีเมล'}</h3><p class="mut small" style="margin:0 0 10px">${kind==='ask'?'ถึง: '+esc(st?st.n:'ผู้อนุมัติ'):'ถึงผู้ขอ'} · เลือกเปิดในแอปที่ใช้ ข้อความกรอกไว้ให้ครบแล้ว</p>
+   <div class="fld" style="margin-bottom:10px"><span>ถึง</span><input id="m_to" type="email" multiple value="${esc(m0.to)}" placeholder="name@company.com"><small>${kind==='ask'&&!m0.to?'ตั้งอีเมลผู้อนุมัติประจำขั้นตอนได้ที่หน้า “ตั้งค่า”':''}</small></div>
+   <div class="fld" style="margin-bottom:10px"><span>สำเนา (CC)</span><input id="m_cc" type="email" multiple></div>
+   <div class="fld" style="margin-bottom:10px"><span>หัวเรื่อง</span><input id="m_su" value="${esc(m0.subject)}"></div>
+   <div class="fld" style="margin-bottom:14px"><span>ข้อความ</span><textarea id="m_bd" rows="10">${esc(m0.body)}</textarea></div>
+   <div class="row"><a class="btn pri" id="m_gm" target="_blank" rel="noopener">เปิดใน Gmail</a><a class="btn" id="m_ol" target="_blank" rel="noopener">เปิดใน Outlook</a><a class="btn" id="m_mt">แอปอีเมลในเครื่อง</a><button class="btn" id="m_cp">คัดลอกข้อความ</button><button class="btn" data-close>ปิด</button></div>
+   <p class="mut small" style="margin:10px 0 0">ระบบเปิดหน้าเขียนอีเมลให้ — คุณเป็นคนกดส่งเองในแอปอีเมล</p>`);
+  const g=id=>m.querySelector(id),E=encodeURIComponent;
+  const upd=()=>{const to=g('#m_to').value.trim(),cc=g('#m_cc').value.trim(),su=g('#m_su').value,bd=g('#m_bd').value;
+    g('#m_gm').href='https://mail.google.com/mail/?view=cm&fs=1&to='+E(to)+(cc?'&cc='+E(cc):'')+'&su='+E(su)+'&body='+E(bd);
+    g('#m_ol').href='https://outlook.office.com/mail/deeplink/compose?to='+E(to)+(cc?'&cc='+E(cc):'')+'&subject='+E(su)+'&body='+E(bd);
+    g('#m_mt').href='mailto:'+to.split(/[,;\s]+/).filter(Boolean).map(E).join(',')+'?'+(cc?'cc='+E(cc)+'&':'')+'subject='+E(su)+'&body='+E(bd)};
+  m.querySelectorAll('input,textarea').forEach(i=>i.addEventListener('input',upd));upd();
+  g('#m_cp').onclick=async()=>{const txt='ถึง: '+g('#m_to').value+'\nหัวเรื่อง: '+g('#m_su').value+'\n\n'+g('#m_bd').value;try{await navigator.clipboard.writeText(txt);toast('คัดลอกแล้ว')}catch(e){g('#m_bd').select();toast('กด Ctrl+C เพื่อคัดลอก')}}}
+
+/* ---------- print ---------- */
+const pv=v=>String(v??'').trim()?esc(v):'<span class="dots"></span>';
+const ck=(all,sel)=>all.map(o=>((sel||[]).includes(o)?'☑':'☐')+' '+esc(o)).join('&nbsp;&nbsp;&nbsp; ');
+function phead(title,doc,dt){return `<div class="ph"><div><div class="co">${esc(CFG.name)}</div><div>${esc(CFG.addr)}</div>${CFG.tax?`<div>เลขประจำตัวผู้เสียภาษี ${esc(CFG.tax)}</div>`:''}</div><div class="pno">${doc&&doc.no?'เลขที่ <b>'+esc(doc.no)+'</b><br>':''}${dt?'วันที่ '+esc(thDate(dt)):''}</div></div><h2>${esc(title)}</h2>`}
+const pkv=pairs=>{let h='';for(let i=0;i<pairs.length;i+=2){const a=pairs[i],b=pairs[i+1];h+=`<tr><th>${esc(a[0])}</th><td ${b?'':'colspan="3"'}>${pv(a[1])}</td>${b?`<th>${esc(b[0])}</th><td>${pv(b[1])}</td>`:''}</tr>`}return `<table class="kv">${h}</table>`};
+const pgt=(heads,rows,foot)=>`<table class="gt"><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>typeof c==='object'&&c?`<td class="r">${c.m===''?'':money(c.m)}</td>`:`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>${foot||''}</table>`;
+const filled=(rows,keys)=>(rows||[]).filter(r=>keys.some(k=>String(r[k]??'').trim()));
+function sigInfo(doc){const log=doc.log||[];const sub=log.filter(l=>l.act==='submit').slice(-1)[0];
+  return {req:{name:reqName(doc.data),at:sub&&sub.at},step:i=>{const l=log.filter(x=>x.step===i&&(x.act==='approve'||x.act==='reject')).slice(-1)[0];return l?{name:nameOf(l.by)||l.name||'',at:l.at,ok:l.act==='approve',amount:l.amount,note:l.note}:{}}}}
+const psigs=list=>`<div class="sigs" style="--n:${list.length}">${list.map(s=>`<div class="sig"><div class="ln">${s.at?`<span class="stp ${s.ok===false?'no':''}">${s.ok===false?'ไม่อนุมัติ':s.stamp||'อนุมัติ'}</span>`:''}</div><div>(${s.name?esc(s.name):'.................................'})</div><div><b>${esc(s.role)}</b></div><div>วันที่ ${s.at?esc(thDate(String(s.at).slice(0,10),1)):'......./......./.......'}</div></div>`).join('')}</div>`;
+const totRow=(span,label,v,bold,trail)=>`<tr><td colspan="${span}" style="text-align:right;${bold?'font-weight:700':''}">${esc(label)}</td><td class="r" style="${bold?'font-weight:700':''}">${money(v)}</td>${trail?'<td></td>':''}</tr>`;
+const P={
+PR(doc){const d=doc.data,c=T.PR.calc(d),p=projById(d.projectId),S=sigInfo(doc);const rows=filled(d.items,['desc','qty','price']);
+ return `<div class="page">${phead('ใบขอซื้อ / ขอจ้าง (PURCHASE REQUISITION)',doc,d.reqDate)}
+ ${pkv([['หน่วยงานที่เบิก',d.unit+(d.unit==='สาขา'&&d.branch?' — '+d.branch:'')],['แผนก',d.dept],['ผู้ขอซื้อ',d.requester],['เบอร์ติดต่อ',d.phone],['วันที่ขอซื้อ',thDate(d.reqDate)],['วันที่ต้องการใช้',thDate(d.needDate)],['ประเภทการขอ',d.reqType],['ประเภทงบประมาณ',d.budgetType],['ชื่อโครงการ',p?p.name:'-'],['รหัสโครงการ',p?p.code||'-':'-'],['วัตถุประสงค์ของการใช้',d.purpose]])}
+ <h4>1. วัตถุประสงค์และเหตุผลในการขอซื้อ / ขอจ้าง</h4><div class="pbox">${esc(d.objective)}${d.usage?'\n'+esc(d.usage):''}</div>
+ <h4>2. รายละเอียดรายการ</h4>${pgt(['ลำดับ','รายการ / สเปก','จำนวน','หน่วย','ราคา/หน่วย','จำนวนเงิน','ผู้ขาย / CC'],rows.map((r,i)=>[String(i+1),r.desc+(r.spec?' — '+r.spec:''),String(r.qty||''),r.unit||'',{m:num(r.price)},{m:num(r.qty)*num(r.price)},[r.vendor,r.cc,r.note].filter(Boolean).join(' / ')]),
+  `<tfoot>${totRow(5,'รวมเงิน',c.sub,0,1)}${totRow(5,d.vatMode==='ไม่มี VAT'?'VAT (ไม่มี)':'VAT '+CFG.vat+'%'+(d.vatMode==='ราคารวม VAT แล้ว'?' (รวมในราคาแล้ว)':''),c.vat,0,1)}${totRow(5,'รวมทั้งสิ้น',c.total,1,1)}<tr><td colspan="7" style="text-align:center">( ${esc(bahtText(c.total))} )</td></tr></tfoot>`)}
+ <h4>3. รายละเอียดเพิ่มเติม / เงื่อนไข / กำหนดส่งมอบ</h4><div class="pbox" style="min-height:34px">${esc(d.terms||'-')}</div>
+ <p style="margin:6px 0">ผู้ขายที่เสนอแนะ: ${pv(d.vendor)}</p><p style="margin:4px 0">เอกสารแนบ: ${ck(['ใบเสนอราคา','รายละเอียดสเปก / TOR','ใบเปรียบเทียบราคา','อื่น ๆ'],d.attach)}</p>
+ <h4>4. การตรวจสอบและอนุมัติ</h4>${psigs([{role:'ผู้ขอซื้อ / ผู้จัดทำ',name:S.req.name,at:S.req.at,stamp:'ส่งแล้ว'}].concat(T.PR.steps.map((s,i)=>({role:s.n,...S.step(i)}))))}
+ <p class="note">หมายเหตุ: แนบใบเสนอราคา / TOR / Specification / เอกสารประกอบ และตรวจสอบงบประมาณก่อนเสนออนุมัติ${c.wht?' · งานจ้าง หัก ณ ที่จ่าย 3% ประมาณ '+money(c.wht)+' บาท':''}</p></div>`},
+ADV(doc){const d=doc.data,c=T.ADV.calc(d),S=sigInfo(doc),rows=filled(d.items,['desc','amount']);
+ return `<div class="page">${phead('ใบเบิกเงินทดรองจ่าย (Advance)',doc,d.date)}${pkv([['ชื่อผู้ขอเบิก',d.requester],['วันที่ต้องการใช้เงิน',thDate(d.needDate)],['ตำแหน่ง',d.position],['ส่วนงาน/ฝ่าย/แผนก',d.dept],['โอนเงินเข้าบัญชี',d.bank],['กำหนดระยะเวลาคืน',thDate(d.returnDue)],['วัตถุประสงค์',d.purpose]])}
+ <div style="height:10px"></div>${pgt(['ลำดับ','รายละเอียดรายจ่าย','โครงการ','จำนวนเงินประมาณ (บาท)'],rows.map((r,i)=>[String(i+1),r.desc||'',projLabel(projById(r.projectId))||'-',{m:num(r.amount)}]),`<tfoot>${totRow(3,'รวม',c.total,1)}<tr><td colspan="4" style="text-align:center">( ${esc(bahtText(c.total))} )</td></tr></tfoot>`)}
+ ${psigs([{role:'ผู้ขอเบิก',name:S.req.name,at:S.req.at,stamp:'ส่งแล้ว'},{role:'ผู้อนุมัติ / ตรวจสอบ',...S.step(0)},{role:'ผู้จ่ายเงิน',...S.step(1),stamp:'จ่ายแล้ว'},{role:'ผู้รับเงิน',name:d.requester}])}<div class="fm">FM-AC-03 REV.00</div></div>`},
+EXP(doc){const d=doc.data,c=T.EXP.calc(d,doc),S=sigInfo(doc),rows=filled(d.items,['detail','net','receipt']);const adv=d.advRef&&DOCS.find(x=>x.id===d.advRef);const s0=S.step(0);
+ return `<div class="page">${phead('แบบฟอร์มขอเบิกค่าใช้จ่าย (Expense Reimbursement Form)',doc,d.date)}
+ <p style="margin:4px 0">ประเภทการเบิก: ${d.kind==='เบิกค่าใช้จ่ายสำรองจ่าย'?'☑':'☐'} เบิกค่าใช้จ่ายสำรองจ่าย &nbsp;&nbsp; ${d.kind==='เคลียร์เงินทดรองจ่าย'?'☑':'☐'} เคลียร์เงินทดรอง เลขที่ใบทดรอง ${pv(adv&&adv.no)}</p>
+ ${pkv([['ชื่อ-นามสกุล',d.requester],['รหัสพนักงาน',d.empId],['ตำแหน่ง',d.position],['แผนก/ฝ่าย',d.dept],['โครงการ',projLabel(projById(d.projectId))||'-'],['เบอร์โทร / อีเมล',d.phone],['วัตถุประสงค์การเบิก',d.purpose]])}
+ <div style="height:8px"></div>${pgt(['ลำดับ','วันที่จ่าย','เลขที่ใบเสร็จ','ผู้รับเงิน / ร้านค้า','รายละเอียด','ประเภท','ก่อน VAT','VAT 7%','รวม'],rows.map((r,i)=>[String(i+1),thDate(r.payDate,1),r.receipt||'',r.payee||'',r.detail||'',r.cat||'',{m:num(r.net)},{m:num(r.vat)?num(r.vat):''},{m:num(r.net)+num(r.vat)}]),
+  `<tfoot><tr><td colspan="6" style="text-align:right">รวมทั้งสิ้น</td><td class="r">${money(c.tNet)}</td><td class="r">${money(c.tVat)}</td><td class="r">${money(c.total)}</td></tr><tr><td colspan="9">จำนวนเงิน (ตัวอักษร): ${esc(bahtText(c.total))}</td></tr>
+  <tr><td colspan="8" style="text-align:right">หักเงินทดรองที่รับไปแล้ว (ถ้ามี)</td><td class="r">${c.adv?money(c.adv):'-'}</td></tr><tr><td colspan="8" style="text-align:right">คงเหลือเบิกคืน (ติดลบ = ต้องคืนบริษัท)</td><td class="r">${money(c.remain)}</td></tr></tfoot>`)}
+ <p style="margin:8px 0 2px"><b>วิธีรับเงินคืน:</b> ${ck(['โอนเข้าบัญชีเงินเดือน','โอนเข้าบัญชีอื่น','รับเงินสด'],[d.payMethod])}${d.payMethod==='โอนเข้าบัญชีอื่น'?`<br>ธนาคาร / สาขา ${pv(d.bank)} เลขที่บัญชี ${pv(d.accNo)} ชื่อบัญชี ${pv(d.accName)}`:''}</p>
+ <p style="margin:4px 0"><b>เอกสารแนบ</b> (${esc(d.attachCount||'-')} ฉบับ): ${ck(['ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป (ฉบับจริง)','ใบรับรองแทนใบเสร็จรับเงิน (กรณีไม่มีใบเสร็จ)','ใบแจ้งหนี้ / ใบสั่งซื้อ','เอกสารอนุมัติล่วงหน้า / บันทึกขออนุมัติ','อื่นๆ'],d.attach)}${d.attachOther?' ('+esc(d.attachOther)+')':''}</p>
+ <p class="note">ข้าพเจ้าขอรับรองว่าค่าใช้จ่ายข้างต้นได้จ่ายไปจริงเพื่อกิจการของบริษัท เอกสารแนบถูกต้องครบถ้วน และไม่เคยนำมาเบิกซ้ำ</p>
+ ${psigs([{role:'ผู้ขอเบิก',name:S.req.name,at:S.req.at,stamp:'ส่งแล้ว'},{role:'ผู้บังคับบัญชา / ผู้อนุมัติ',...s0},{role:'ฝ่ายบัญชี (ผู้ตรวจสอบ)',...S.step(1)},{role:'ผู้รับเงิน',...S.step(2),name:d.requester,stamp:'จ่ายแล้ว'}])}
+ <p style="margin-top:10px">ผลการอนุมัติ: ${s0.at?(s0.ok===false?'☐ อนุมัติ ☐ อนุมัติบางส่วน ☑ ไม่อนุมัติ':s0.amount!=null?'☐ อนุมัติ ☑ อนุมัติบางส่วน '+money(s0.amount)+' บาท ☐ ไม่อนุมัติ':'☑ อนุมัติ ☐ อนุมัติบางส่วน ☐ ไม่อนุมัติ'):'☐ อนุมัติ ☐ อนุมัติบางส่วน ........ บาท ☐ ไม่อนุมัติ'}<br>เหตุผล / หมายเหตุ: ${pv(s0.note)}</p></div>`},
+TRV(doc){const d=doc.data,c=T.TRV.calc(d),S=sigInfo(doc),s0=S.step(0),p=projById(d.projectId),rows=filled(d.items,['detail','amount']);
+ const pg1=`<div class="page">${phead('ใบเบิกค่าใช้จ่ายในการเดินทางไปปฏิบัติงาน',doc,d.date)}
+ <p style="margin:4px 0"><b>เรื่อง</b> ขออนุมัติเบิกค่าใช้จ่ายในการเดินทางไปปฏิบัติงาน<br><b>เรียน</b> ${pv(d.to)}</p>
+ <p class="para">ตามหนังสืออนุมัติให้เดินทางไปปฏิบัติงาน ได้มอบหมายให้ <span class="u">${esc(d.traveler)}</span> ตำแหน่ง <span class="u">${esc(d.position||'-')}</span> แผนก <span class="u">${esc(d.dept||'-')}</span> โครงการ <span class="u">${esc(p?projLabel(p):'-')}</span> เดินทางไปปฏิบัติงานเพื่อ <span class="u">${esc(d.purpose)}</span>
+ โดยออกเดินทางจาก <span class="u">${esc(d.from||'-')}</span> ตั้งแต่วันที่ <span class="u">${esc(thDate(d.start))}</span> ถึงวันที่ <span class="u">${esc(thDate(d.end))}</span>${d.tFrom||d.tTo?` ตั้งแต่เวลา <span class="u">${esc(d.tFrom||'-')}</span> ถึง <span class="u">${esc(d.tTo||'-')}</span>`:''} ไปปฏิบัติงานครั้งนี้ <span class="u">${c.nd}</span> วัน</p>
+ <p style="margin:6px 0">ข้าพเจ้าขอเบิกค่าใช้จ่ายในการเดินทางไปปฏิบัติงานสำหรับ ${ck(['ข้าพเจ้า','คณะเดินทาง'],[d.forWhom])} ดังนี้</p>
+ <table class="gt"><tbody>${[['1. ค่าพาหนะ / ค่าที่จอดรถ'+(rows.length?' (ตามใบรับรองแทนใบเสร็จแนบ)':''),c.fare],['2. ค่าเบี้ยเลี้ยง อัตราวันละ '+money(d.perDiemRate)+' บาท × '+c.pdd+' วัน',c.perDiem],['3. ค่าน้ำมันเชื้อเพลิง '+(num(d.km)||0)+' กิโลเมตร × '+num(d.fuelRate)+' บาท',c.fuel],['4. ค่าทางด่วน',c.toll],['5. ค่าใช้จ่ายอื่น'+(d.otherNote?' ('+d.otherNote+')':''),c.other]].map(([l,v])=>`<tr><td>${esc(l)}</td><td class="r" style="width:30%">${money(v)} บาท</td></tr>`).join('')}
+ <tr><td style="text-align:right;font-weight:700">รวมเงินทั้งสิ้น</td><td class="r" style="font-weight:700">${money(c.total)} บาท</td></tr><tr><td colspan="2">จำนวนเงิน (ตัวอักษร): ${esc(bahtText(c.total))}</td></tr></tbody></table>
+ <p class="para">ข้าพเจ้าขอรับรองว่ารายการที่กล่าวมาข้างต้นเป็นความจริงตามที่เบิกจ่ายเพื่อประโยชน์ของบริษัทจริง โดยมีหลักฐานการจ่ายที่ส่งมาด้วย จำนวน <span class="u">${esc(d.attachCount||'-')}</span> ฉบับ</p>
+ ${psigs([{role:'ผู้รับเงิน'+(d.position?' — '+d.position:''),name:d.traveler,at:S.req.at,stamp:'ส่งแล้ว'},{role:'อนุมัติให้จ่ายได้',...s0},{role:'ฝ่ายบัญชี / ผู้จ่ายเงิน',...S.step(1),stamp:'จ่ายแล้ว'}])}</div>`;
+ return pg1+(rows.length?subPage({buyer:CFG.name,items:rows.map(r=>({date:r.date,detail:r.detail,amount:r.amount,note:r.note})),payer:d.traveler,position:d.position,dept:d.dept,from:d.start,to:d.end},{no:doc.no?doc.no+'/RC':''},S,s0):'')},
+SUB(doc){const S=sigInfo(doc);return subPage(doc.data,doc,S,S.step(0))},
+PJO(doc){const d=doc.data,c=T.PJO.calc(d),S=sigInfo(doc),s1=S.step(1);
+ return `<div class="page">${phead('ใบแจ้งเปิดโครงการให้ฝ่ายบัญชี',doc,d.date)}<p class="sub">แจ้งก่อนออก PR ใบแรกของโครงการ</p>
+ <h4>1. ข้อมูลพื้นฐานของโครงการ</h4>${pkv([['ชื่อโครงการ',d.name],['รหัสโครงการ',d.projCode||d.code],['ประเภทโครงการ',d.ptype],['หน่วยงานเจ้าของ',d.owner],['ชื่อสาขา / ฟาร์ม',d.branch],['ศูนย์ต้นทุน',d.cc],['หัวหน้าโครงการ',d.lead],['เบอร์โทร',d.phone],['ผู้มีอำนาจอนุมัติ',d.approver],['วงเงินอนุมัติ/ครั้ง',d.limit?money(d.limit)+' บาท':'']])}
+ <h4>2. ระยะเวลา</h4>${pkv([['วันที่เริ่ม',thDate(d.start)],['วันที่สิ้นสุด',thDate(d.end)],['ระยะเวลา',c.dur],['ปีบัญชี',c.fy]])}
+ <h4>3. งบประมาณที่อนุมัติ (ไม่รวม VAT)</h4>${pgt(['หมวด','จำนวนเงิน','หมายเหตุ'],(d.budget||[]).map(r=>[r.cat,{m:num(r.amount)},r.note||'']),`<tfoot><tr><td>รวมงบประมาณ</td><td class="r">${money(c.total)}</td><td></td></tr></tfoot>`)}
+ <p style="margin:6px 0">เอกสารแนบ: ${ck(['แบบเสนอโครงการที่อนุมัติ','รายละเอียดงบประมาณ','เอกสารอื่น ๆ'],d.attach)}</p>
+ <h4>4. ลงชื่อ</h4>${psigs([{role:'ผู้แจ้ง (หัวหน้าโครงการ)',name:d.lead,at:S.req.at,stamp:'ส่งแล้ว'},{role:'ผู้มีอำนาจอนุมัติ',...S.step(0)}])}
+ <div class="pbox" style="margin-top:16px"><b>สำหรับฝ่ายบัญชี</b>\nรหัสโครงการที่กำหนด: <b>${esc(d.projCode||'..................')}</b>    วันที่ตั้งในระบบ: ${esc(thDate(d.setupDate)||'..................')}\n${ck(T.PJO.steps[1].checks,d.acctChecks)}\nผู้ดำเนินการ: ${esc(s1.name||'..................')}</div></div>`},
+PJC(doc){const d=doc.data,c=T.PJC.calc(d,doc),p=projById(d.projectId),S=sigInfo(doc);const ch=filled(d.changes,['item','old','nw']),ac=filled(d.accruals,['item','amount']),as=filled(d.assets,['item','cost']);
+ const showC=d.kind==='เปลี่ยนงบประมาณ'||d.kind==='ขยายเวลา',showR=!showC;
+ return `<div class="page">${phead('ใบแจ้งเปลี่ยนแปลง / ปิดโครงการ',doc,d.date)}<h4>1. ข้อมูลการแจ้ง</h4>${pkv([['ชื่อโครงการ',p?p.name:''],['รหัสโครงการ',p?p.code:''],['ประเภทการแจ้ง',d.kind],['ผู้แจ้ง',d.reporter]])}
+ ${showC?`<h4>2. เปลี่ยนแปลงงบหรือระยะเวลา</h4>${pgt(['รายการที่เปลี่ยน','เดิม','ใหม่','ส่วนต่าง'],ch.map(r=>{const df=T.PJC.secs[1].f[0].cols[3].calc(r);return [r.item||'',r.old||'',r.nw||'',df===''?'':{m:df}]}))}<p style="margin:6px 0">เหตุผล: ${pv(d.reason)}</p>`:''}
+ ${showR?`<h4>3. รายงานก่อนปิดงบสิ้นปี / ปิดโครงการ</h4>${pkv([['ความคืบหน้า (%)',d.progress],['วันที่ปิดโครงการ',thDate(d.closeDate)],['งบที่ใช้จริงถึงวันนี้',money(c.used)+' บาท'],['งบคงเหลือ',money(c.remain)+' บาท']])}
+  <p style="margin:8px 0 4px">รายการที่รับของหรือรับงานแล้ว แต่ยังไม่ได้ใบแจ้งหนี้ (บัญชีต้องตั้งค้างจ่าย)</p>${pgt(['ลำดับ','รายการ','ผู้ขาย','จำนวนเงินโดยประมาณ'],(ac.length?ac:[{}]).map((r,i)=>[ac.length?String(i+1):'-',r.item||'',r.vendor||'',r.amount?{m:num(r.amount)}:'']))}
+  ${d.kind==='ปิดโครงการ'?`<p style="margin:8px 0 4px">ทรัพย์สินที่ได้จากโครงการ (บัญชีจะโอนเข้าทะเบียนทรัพย์สิน)</p>${pgt(['ลำดับ','รายการทรัพย์สิน','จำนวน','ต้นทุนรวม','สถานที่ตั้ง / ผู้ดูแล'],(as.length?as:[{}]).map((r,i)=>[as.length?String(i+1):'-',r.item||'',String(r.qty||''),r.cost?{m:num(r.cost)}:'',r.loc||'']))}
+  <p style="margin:6px 0">เมื่อปิดโครงการ: ${ck(['แนบรายงานสรุปผล','หยุดรับเอกสารเบิกภายใต้รหัสนี้','ส่งเอกสารค้างทั้งหมดภายใน 15 วัน'],d.closing)} ${d.stopDate?'(ตั้งแต่ '+esc(thDate(d.stopDate))+')':''}</p>`:''}`:''}
+ <h4>4. ลงชื่อ</h4>${psigs([{role:'ผู้แจ้ง (หัวหน้าโครงการ)',name:d.reporter,at:S.req.at,stamp:'ส่งแล้ว'},{role:'ผู้มีอำนาจอนุมัติ',...S.step(0)},{role:'ฝ่ายบัญชีรับเรื่อง',...S.step(1),stamp:'รับเรื่อง'}])}</div>`}
+};
+function subPage(d,doc,S,s0){const rows=filled(d.items,['detail','amount']);const total=sumRows(rows,r=>num(r.amount));const ds=rows.map(r=>r.date).filter(Boolean).sort();
+ return `<div class="page">${phead('ใบรับรองแทนใบเสร็จรับเงิน',doc,null)}<p style="margin:4px 0">บจ. / หจก. <span class="u">${esc(d.buyer||CFG.name)}</span> (ผู้ซื้อ / ผู้รับบริการ)</p>
+ ${pgt(['วัน เดือน ปี','รายละเอียดรายจ่าย','จำนวนเงิน','หมายเหตุ'],rows.map(r=>[thDate(r.date,1),r.detail||'',{m:num(r.amount)},r.note||'']),`<tfoot><tr><td colspan="2" style="text-align:right">รวมทั้งสิ้น</td><td class="r">${money(total)}</td><td></td></tr><tr><td colspan="4" style="text-align:center">( ${esc(bahtText(total))} )</td></tr></tfoot>`)}
+ <p class="para" style="margin-top:12px">ข้าพเจ้า <span class="u">${esc(d.payer)}</span> (ผู้เบิกจ่าย) ตำแหน่ง <span class="u">${esc(d.position||'-')}</span> แผนก <span class="u">${esc(d.dept||'-')}</span> ขอรับรองว่า รายจ่ายข้างต้นนี้ไม่อาจเรียกเก็บใบเสร็จรับเงินจากผู้รับได้ และข้าพเจ้าได้จ่ายไปในงานของบริษัทโดยแท้ ตั้งแต่วันที่ <span class="u">${esc(thDate(d.from||ds[0]))}</span> ถึงวันที่ <span class="u">${esc(thDate(d.to||ds[ds.length-1]))}</span></p>
+ ${psigs([{role:'ผู้เบิกจ่าย',name:d.payer,at:S.req.at,stamp:'ส่งแล้ว'},{role:'ผู้อนุมัติ',...s0}])}<p class="note">หมายเหตุ: แนบสำเนาบัตรประชาชนของผู้รับเงิน (ถ้ามี)</p><div class="fm">FM-AC-02 REV.00</div></div>`}
+async function printDlg(doc){await names((doc.log||[]).map(l=>l.by));const html=P[doc.type](doc);const vs=XL[doc.type]||[];
+  const ov=vs.flatMap(v=>xlOverflow(doc,v));
+  const m=modal(`<div class="bar2"><b>ดาวน์โหลดแบบฟอร์ม · ${esc(doc.no||'ร่าง')}</b><button class="btn" data-close>ปิด</button></div>
+  <div style="padding:14px 16px;background:var(--bg);border-bottom:1px solid var(--line)"><div class="row">${vs.map((v,i)=>`<button class="btn pri" data-xl="${i}">${esc(v.label)} (.xlsx)</button>`).join('')}<button class="btn" id="pdl">${doc.type==='TRV'?'ใบเบิกค่าเดินทาง + ใบรับรอง (ไฟล์พิมพ์ .html)':'ไฟล์พิมพ์ A4 (.html)'}</button></div>
+  <p class="mut small" style="margin:8px 0 0">ไฟล์ Excel คือแบบฟอร์มเดิมของบริษัท กรอกข้อมูลให้แล้ว สูตรยังทำงาน แก้ต่อใน Excel ได้${doc.type==='TRV'?' · ใบเบิกค่าเดินทางต้นฉบับเป็นไฟล์ Word จึงให้เป็นไฟล์พิมพ์แทน':''}</p>${ov.length?`<div class="warn" style="margin-top:8px">${[...new Set(ov)].map(x=>`<p>⚠ ${esc(x)}</p>`).join('')}</div>`:''}</div>
+  <p class="mut small" style="margin:10px 16px 0">ตัวอย่างก่อนพิมพ์</p><div class="pv"><div class="ps">${html}</div></div>`,1);
+  m.querySelectorAll('[data-xl]').forEach(b=>b.onclick=()=>dlXlsx(doc,+b.dataset.xl,b));
+  m.querySelector('#pdl').onclick=()=>download((doc.no||'draft-'+T[doc.type].name)+'.html',`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${esc(doc.no||T[doc.type].name)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap"><style>body{margin:0;background:#888}@page{size:A4;margin:0}${PRINT_CSS}</style></head><body><div class="ps">${html}</div><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script></body></html>`)}
+const PRINT_CSS=[...(document.getElementById('mainstyle').sheet?.cssRules||[])].map(r=>r.cssText).filter(t=>/\.ps\b|@media print/.test(t)).join('\n');
+async function download(name,data){if(!DLS){toast('ดาวน์โหลดไม่ได้ในมุมมองนี้ — เปิดหน้านี้บน claude.ai');return}try{await DLS.save({filename:name,data});toast('บันทึกไฟล์แล้ว')}catch(e){if(e&&e.code!=='declined')toast('ดาวน์โหลดไม่สำเร็จ ('+(e&&e.code||'error')+')')}}
+
+/* ---------- Excel export: fill the original templates ---------- */
+const XNS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RNS='http://schemas.openxmlformats.org/package/2006/relationships';
+const colN=s=>s.split('').reduce((a,c)=>a*26+c.charCodeAt(0)-64,0);
+const sref=r=>{const m=r.match(/^([A-Z]+)(\d+)$/);return [m[1],+m[2]]};
+const xserial=iso=>{const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?(Date.UTC(+m[1],+m[2]-1,+m[3])-Date.UTC(1899,11,30))/864e5:''};
+let jszipP=null;
+function loadJSZip(){if(window.JSZip)return Promise.resolve();return jszipP||(jszipP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=ok;s.onerror=()=>{jszipP=null;no(new Error('โหลดตัวสร้างไฟล์ Excel ไม่ได้'))};document.head.appendChild(s)}))}
+let tplP=null;
+function loadTpl(){if(window.XLTPL)return Promise.resolve();return tplP||(tplP=new Promise((ok,no)=>{const s=document.createElement('script');s.src='xltemplates.js';s.onload=ok;s.onerror=()=>{tplP=null;no(new Error('โหลดแม่แบบ Excel ไม่ได้'))};document.head.appendChild(s)}))}
+function sheetEd(xml){const doc=new DOMParser().parseFromString(xml,'application/xml'),sd=doc.getElementsByTagNameNS(XNS,'sheetData')[0];
+  const kids=(e,t)=>[...e.childNodes].filter(x=>x.localName===t),mk=t=>doc.createElementNS(XNS,t);
+  const rowEl=n=>{const rows=kids(sd,'row');let r=rows.find(x=>+x.getAttribute('r')===n);if(r)return r;r=mk('row');r.setAttribute('r',n);sd.insertBefore(r,rows.find(x=>+x.getAttribute('r')>n)||null);return r};
+  const cellEl=ref=>{const [c,n]=sref(ref),row=rowEl(n),cs=kids(row,'c');let e=cs.find(x=>x.getAttribute('r')===ref);if(e)return e;e=mk('c');e.setAttribute('r',ref);
+    row.insertBefore(e,cs.find(x=>colN(sref(x.getAttribute('r'))[0])>colN(c))||null);return e};
+  function set(ref,val,keepF=true){const e=cellEl(ref),f=kids(e,'f')[0],hasF=!!f&&keepF;
+    kids(e,'v').concat(kids(e,'is')).forEach(x=>x.remove());if(f&&!hasF)f.remove();
+    if(typeof val==='number'&&Number.isFinite(val)){e.removeAttribute('t');const v=mk('v');v.textContent=String(r2(val));e.appendChild(v);return}
+    val=val==null?'':String(val);
+    if(hasF){e.setAttribute('t','str');const v=mk('v');v.textContent=val;e.appendChild(v);return}
+    if(val===''){e.removeAttribute('t');return}
+    e.setAttribute('t','inlineStr');const is=mk('is'),t=mk('t');t.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve');t.textContent=val;is.appendChild(t);e.appendChild(is)}
+  function view(on){const sv=doc.getElementsByTagNameNS(XNS,'sheetView')[0];if(!sv)return;if(on){sv.setAttribute('tabSelected','1');sv.removeAttribute('topLeftCell')}else sv.removeAttribute('tabSelected')}
+  return {set,view,xml:()=>new XMLSerializer().serializeToString(doc)}}
+async function buildXlsx(v,doc){await loadJSZip();await loadTpl();const b64=window.XLTPL&&window.XLTPL[v.tpl];if(!b64)throw new Error('ไม่พบไฟล์แม่แบบ '+v.tpl);
+  const zip=await JSZip.loadAsync(b64,{base64:true}),P=new DOMParser(),S=new XMLSerializer();
+  const wb=P.parseFromString(await zip.file('xl/workbook.xml').async('string'),'application/xml');
+  const rels=P.parseFromString(await zip.file('xl/_rels/workbook.xml.rels').async('string'),'application/xml');
+  const rmap={};[...rels.getElementsByTagNameNS(RNS,'Relationship')].forEach(r=>rmap[r.getAttribute('Id')]=r);
+  const sheets=[...wb.getElementsByTagNameNS(XNS,'sheet')];const idx=sheets.findIndex(s=>s.getAttribute('name')===v.sheet);if(idx<0)throw new Error('ไม่พบชีต '+v.sheet);
+  for(let i=0;i<sheets.length;i++){const s=sheets[i],tg=rmap[s.getAttribute('r:id')].getAttribute('Target').replace(/^\/?xl\//,'');const path='xl/'+tg;
+    const ed=sheetEd(await zip.file(path).async('string'));if(i===idx){v.fill(ed,doc);ed.view(true);s.removeAttribute('state')}else{ed.view(false);s.setAttribute('state','hidden')}zip.file(path,ed.xml())}
+  const wv=wb.getElementsByTagNameNS(XNS,'workbookView')[0];if(wv){wv.setAttribute('activeTab',idx);wv.setAttribute('firstSheet',idx)}
+  let cp=wb.getElementsByTagNameNS(XNS,'calcPr')[0];if(!cp){cp=wb.createElementNS(XNS,'calcPr');wb.documentElement.appendChild(cp)}cp.setAttribute('fullCalcOnLoad','1');
+  zip.file('xl/workbook.xml',S.serializeToString(wb));
+  Object.values(rmap).forEach(r=>{if(/calcChain/.test(r.getAttribute('Target')))r.parentNode.removeChild(r)});zip.file('xl/_rels/workbook.xml.rels',S.serializeToString(rels));zip.remove('xl/calcChain.xml');
+  const ct=P.parseFromString(await zip.file('[Content_Types].xml').async('string'),'application/xml');[...ct.getElementsByTagName('Override')].forEach(o=>{if(/calcChain/.test(o.getAttribute('PartName')))o.parentNode.removeChild(o)});zip.file('[Content_Types].xml',S.serializeToString(ct));
+  return zip.generateAsync({type:'blob',compression:'DEFLATE'})}
+function fit(rows,max,merge){rows=rows||[];if(rows.length<=max)return rows;return rows.slice(0,max-1).concat([merge(rows.slice(max-1))])}
+const pn=n=>n?'( '+n+' )':'(                                        )';
+const pd=at=>at?'วันที่ '+thDate(String(at).slice(0,10),1):'วันที่ ......../......../........';
+const chk=(all,sel)=>all.map(o=>((sel||[]).includes(o)?'☑ ':'☐ ')+o).join('    ');
+const verdict=s=>s.at?(s.ok===false?' — ไม่อนุมัติ':' — อนุมัติ')+(s.note?' ('+s.note+')':''):'';
+const coHead=(e,a,b,c)=>{e.set(a,CFG.name);e.set(b,CFG.addr);e.set(c,CFG.tax?'เลขประจำตัวผู้เสียภาษี '+CFG.tax:'')};
+function fillSub(e,o){const rows=fit(filled(o.items,['detail','amount']),16,rest=>({date:'',detail:'และรายการอื่นอีก '+rest.length+' รายการ',amount:sumRows(rest,r=>num(r.amount))}));
+  const total=sumRows(rows,r=>num(r.amount)),ds=rows.map(r=>r.date).filter(Boolean).sort();
+  coHead(e,'B1','B2','B3');e.set('H6',o.no||'');e.set('B8',o.buyer||CFG.name);
+  for(let i=0;i<16;i++){const r=rows[i]||{},R=11+i;e.set('A'+R,thDate(r.date,1));e.set('B'+R,r.detail||'');e.set('G'+R,r.amount!==''&&r.amount!=null?num(r.amount):'');e.set('H'+R,r.note||'')}
+  e.set('G28',total);e.set('A28','( '+bahtText(total)+' )');e.set('B30',o.payer||'');e.set('G30',[o.position,o.dept].filter(Boolean).join(' / '));
+  e.set('D32',thDate(o.from||ds[0],1));e.set('F32',thDate(o.to||ds[ds.length-1],1));e.set('F35',o.payer||'');e.set('F38',o.approver||'')}
+const XL={
+ PR:[{label:'Excel — แบบ Purchase Requisition (4 ขั้นอนุมัติ)',tpl:'pr.xlsx',sheet:'Purchase Requisition',max:10,fill(e,doc){const d=doc.data,c=T.PR.calc(d),S=sigInfo(doc),p=projById(d.projectId);
+   const rows=fit(filled(d.items,['desc','qty','price']),10,rest=>({desc:'และรายการอื่นอีก '+rest.length+' รายการ',qty:1,price:sumRows(rest,r=>num(r.qty)*num(r.price))}));
+   e.set('A2',CFG.name);e.set('C4',doc.no||'');e.set('G4',thDate(d.reqDate));e.set('C5',d.dept||'');e.set('G5',thDate(d.needDate));e.set('C6',d.requester+(d.phone?' (โทร '+d.phone+')':''));e.set('G6',d.reqType||'');
+   e.set('A9','โปรดระบุรายละเอียดให้ชัดเจน: '+(d.objective||'')+(d.usage?'\n'+d.usage:''));
+   for(let i=0;i<10;i++){const r=rows[i]||{},R=15+i,has=r.qty!==undefined&&String(r.qty)!==''&&String(r.price??'')!=='';
+     e.set('B'+R,r.desc||'');e.set('C'+R,r.spec||'');e.set('D'+R,r.unit||'');e.set('E'+R,String(r.qty??'')!==''?num(r.qty):'');e.set('F'+R,String(r.price??'')!==''?num(r.price):'');e.set('G'+R,has?num(r.qty)*num(r.price):'');e.set('H'+R,r.vendor||'');e.set('I'+R,r.cc||'');e.set('J'+R,r.note||'')}
+   e.set('G25',c.sub);
+   e.set('A28',[d.terms,'โครงการ: '+(p?projLabel(p):'-')+'   ประเภทงบ: '+(d.budgetType||'-'),'วัตถุประสงค์ของการใช้ (หมวดบัญชี): '+(d.purpose||'-'),'ภาษี: '+(d.vatMode||'')+'  VAT '+money(c.vat)+'  รวมทั้งสิ้น '+money(c.total)+' บาท ('+bahtText(c.total)+')',d.vendor?'ผู้ขายที่เสนอแนะ: '+d.vendor:'','เอกสารแนบ: '+chk(['ใบเสนอราคา','รายละเอียดสเปก / TOR','ใบเปรียบเทียบราคา','อื่น ๆ'],d.attach)].filter(Boolean).join('\n'));
+   const sg=[{name:S.req.name,at:S.req.at}].concat([0,1,2].map(i=>S.step(i)));
+   sg.forEach((s,i)=>{e.set('F'+(33+i),s.at?thDate(String(s.at).slice(0,10),1):'');e.set('G'+(33+i),s.name?s.name+(i?verdict(s):''):'')})}},
+  {label:'Excel — แบบใบขอซื้อในไฟล์โครงการ (มี VAT / รหัสโครงการ)',tpl:'pj.xlsx',sheet:'ใบขอซื้อ(PR)',max:10,fill(e,doc){const d=doc.data,S=sigInfo(doc),p=projById(d.projectId),rt=vatRate(),incl=d.vatMode==='ราคารวม VAT แล้ว',none=d.vatMode==='ไม่มี VAT';
+   let rows=filled(d.items,['desc','qty','price']).map(r=>({...r,price:incl&&String(r.price??'')!==''?r2(num(r.price)/(1+rt)):r.price}));
+   rows=fit(rows,10,rest=>({desc:'และรายการอื่นอีก '+rest.length+' รายการ',qty:1,price:sumRows(rest,r=>num(r.qty)*num(r.price))}));
+   const sub=sumRows(rows,r=>num(r.qty)*num(r.price)),vat=none?0:r2(sub*rt),tot=r2(sub+vat);
+   e.set('A1',CFG.name);e.set('B3',d.unit||'');e.set('E3',d.unit==='สาขา'?d.branch||'':'-');e.set('B4',doc.no||'');e.set('E4',thDate(d.reqDate));e.set('B5',d.dept||'');e.set('E5',thDate(d.needDate));
+   e.set('B6',d.requester||'');e.set('E6',d.phone||'');e.set('B7',p?p.name:'-');e.set('B8',p?p.code||'-':'-');e.set('E8',d.budgetType||'');e.set('B9',d.purpose||'');
+   e.set('B10',[d.objective,d.usage,d.reqType?'ประเภทการขอ: '+d.reqType:'',d.terms].filter(Boolean).join('\n'));
+   for(let i=0;i<10;i++){const r=rows[i]||{},R=14+i,has=String(r.qty??'')!==''&&String(r.price??'')!=='';
+     e.set('B'+R,(r.desc||'')+(r.spec?' — '+r.spec:''));e.set('C'+R,String(r.qty??'')!==''?num(r.qty):'');e.set('D'+R,r.unit||'');e.set('E'+R,String(r.price??'')!==''?num(r.price):'');
+     e.set('F'+R,has?num(r.qty)*num(r.price):'');e.set('G'+R,[r.vendor,r.cc,r.note].filter(Boolean).join(' / '))}
+   e.set('F24',sub);e.set('E25',none?0:rt);e.set('F25',vat);e.set('F26',tot);e.set('A24',tot?'('+bahtText(tot)+')':'');
+   e.set('B28',d.vendor||'');e.set('B29',chk(['ใบเสนอราคา','รายละเอียดสเปก / TOR','ใบเปรียบเทียบราคา','อื่น ๆ'],d.attach));
+   const sg=[{name:S.req.name,at:S.req.at},S.step(0),S.step(2)];[['A32','A34'],['C32','C34'],['F32','F34']].forEach(([n,t],i)=>{e.set(n,pn(sg[i].name));e.set(t,pd(sg[i].at))})}}],
+ EXP:[{label:'Excel — แบบฟอร์มขอเบิกค่าใช้จ่าย',tpl:'exp.xlsx',sheet:'ใบขอเบิก',max:8,fill(e,doc){const d=doc.data,c=T.EXP.calc(d,doc),S=sigInfo(doc),adv=d.advRef&&DOCS.find(x=>x.id===d.advRef),s0=S.step(0),s1=S.step(1),s2=S.step(2);
+   const rows=fit(filled(d.items,['detail','net','receipt']),8,rest=>({detail:'และรายการอื่นอีก '+rest.length+' รายการ (ดูเอกสารแนบ)',cat:'อื่นๆ',net:sumRows(rest,r=>num(r.net)),vat:sumRows(rest,r=>num(r.vat))}));
+   coHead(e,'C1','C2','C3');e.set('C5',doc.no||'');e.set('G5',thDate(d.date));const clr=d.kind==='เคลียร์เงินทดรองจ่าย';e.set('C6',clr?'':'✓');e.set('F6',clr?'✓':'');e.set('I6',clr&&adv?adv.no:'');
+   e.set('C9',d.requester||'');e.set('G9',d.empId||'');e.set('C10',d.position||'');e.set('G10',d.dept||'');e.set('C11',projLabel(projById(d.projectId))||'');e.set('G11',d.phone||'');e.set('C12',d.purpose||'');
+   for(let i=0;i<8;i++){const r=rows[i]||{},R=17+i,has=String(r.net??'')!==''||String(r.vat??'')!=='';
+     e.set('B'+R,thDate(r.payDate,1));e.set('C'+R,r.receipt||'');e.set('D'+R,r.payee||'');e.set('E'+R,r.detail||'');e.set('F'+R,r.cat||'');
+     e.set('G'+R,String(r.net??'')!==''?num(r.net):'');e.set('H'+R,num(r.vat)?num(r.vat):'');e.set('I'+R,has?num(r.net)+num(r.vat):'')}
+   e.set('G25',c.tNet);e.set('H25',c.tVat);e.set('I25',c.total);e.set('C26',c.total?bahtText(c.total):'');e.set('F27',c.adv?c.adv:'');e.set('F28',c.remain);
+   const pm=d.payMethod;e.set('A32',pm==='โอนเข้าบัญชีเงินเดือน'?'✓':'');e.set('A33',pm==='โอนเข้าบัญชีอื่น'?'✓':'');e.set('A35',pm==='รับเงินสด'?'✓':'');
+   const oth=pm==='โอนเข้าบัญชีอื่น';e.set('E33',oth?d.bank||'':'');e.set('H33',oth?d.accNo||'':'');e.set('E34',oth?d.accName||'':'');
+   T.EXP.secs[3].f.find(f=>f.k==='attach').o.forEach((o,i)=>e.set('A'+(38+i),(d.attach||[]).includes(o)?'✓':''));e.set('D42',d.attachOther||'');e.set('H37',d.attachCount!==''&&d.attachCount!=null?num(d.attachCount):'');
+   e.set('C48',pn(d.requester));e.set('E48',pn(s0.name));e.set('F48',pn(s1.name));e.set('H48',pn(d.requester));e.set('C49',d.position||'');
+   e.set('C50',S.req.at?thDate(String(S.req.at).slice(0,10),1):'');e.set('E50',s0.at?thDate(String(s0.at).slice(0,10),1):'');e.set('F50',s1.at?thDate(String(s1.at).slice(0,10),1):'');e.set('H50',s2.at?thDate(String(s2.at).slice(0,10),1):'');
+   e.set('C52',s0.at&&s0.ok&&s0.amount==null?'✓':'');e.set('E52',s0.at&&s0.ok&&s0.amount!=null?'✓':'');e.set('G52',s0.amount!=null?s0.amount:'');e.set('H52',s0.at&&s0.ok===false?'✓':'');e.set('C53',[s0.note,s1.note].filter(Boolean).join(' / '))}}],
+ ADV:[{label:'Excel — ใบเบิกเงินทดรองจ่าย (FM-AC-03)',tpl:'adv.xlsx',sheet:'ใบเบิกทดรองจ่าย',max:18,fill(e,doc){const d=doc.data,c=T.ADV.calc(d),S=sigInfo(doc),s0=S.step(0),s1=S.step(1);
+   const rows=fit(filled(d.items,['desc','amount']),18,rest=>({desc:'และรายการอื่นอีก '+rest.length+' รายการ',amount:sumRows(rest,r=>num(r.amount))}));
+   coHead(e,'B1','B2','B3');e.set('I4',doc.no||'');e.set('I5',thDate(d.date));e.set('B8',d.requester||'');e.set('I8',thDate(d.needDate));e.set('B9',d.position||'');e.set('G9',d.dept||'');
+   e.set('C10',d.bank||'');e.set('C11',d.purpose||'');e.set('C13',thDate(d.returnDue));
+   for(let i=0;i<18;i++){const r=rows[i]||{},R=15+i;e.set('B'+R,r.desc||'');e.set('G'+R,projLabel(projById(r.projectId))||'');e.set('H'+R,String(r.amount??'')!==''?num(r.amount):'')}
+   e.set('H33',c.total);[['A',{name:d.requester,at:S.req.at}],['C',s0],['F',s1],['I',{name:d.requester,at:s1.at}]].forEach(([col,s])=>{e.set(col+'39',pn(s.name));e.set(col+'41',pd(s.at))})}}],
+ SUB:[{label:'Excel — ใบรับรองแทนใบเสร็จ (FM-AC-02)',tpl:'adv.xlsx',sheet:'FM-AC-02',max:16,fill(e,doc){const d=doc.data,S=sigInfo(doc);fillSub(e,{...d,no:doc.no,approver:S.step(0).name})}}],
+ TRV:[{label:'Excel — ใบรับรองแทนใบเสร็จของค่าพาหนะ (FM-AC-02)',tpl:'adv.xlsx',sheet:'FM-AC-02',max:16,fill(e,doc){const d=doc.data,S=sigInfo(doc);
+   fillSub(e,{buyer:CFG.name,items:d.items,payer:d.traveler,position:d.position,dept:d.dept,from:d.start,to:d.end,no:doc.no?doc.no+'/RC':'',approver:S.step(0).name})}}],
+ PJO:[{label:'Excel — ใบแจ้งเปิดโครงการ',tpl:'pj.xlsx',sheet:'แจ้งเปิดโครงการ',fill(e,doc){const d=doc.data,c=T.PJO.calc(d),S=sigInfo(doc),s0=S.step(0),s1=S.step(1);
+   e.set('A1',CFG.name);e.set('C5',d.name||'');e.set('C6',d.projCode||d.code||'');e.set('G6',thDate(d.date));e.set('C7',d.ptype||'');e.set('G7',d.owner||'');e.set('C8',d.branch||'');e.set('G8',d.cc||'');
+   e.set('C9',d.lead||'');e.set('G9',d.phone||'');e.set('C10',d.approver||'');e.set('G10',String(d.limit??'')!==''?num(d.limit):'');
+   e.set('C14',xserial(d.start));e.set('G14',xserial(d.end));e.set('C15',c.dur);e.set('F15',c.fy);
+   for(let i=0;i<6;i++){const r=(d.budget||[])[i]||{};e.set('D'+(19+i),String(r.amount??'')!==''?num(r.amount):'');e.set('F'+(19+i),r.note||'')}e.set('D25',c.total);
+   e.set('A27','เอกสารแนบ:  '+chk(['แบบเสนอโครงการที่อนุมัติ','รายละเอียดงบประมาณ','เอกสารอื่น ๆ'],d.attach));
+   e.set('A31',pn(d.lead));e.set('E31',pn(s0.name));e.set('A33',pd(S.req.at));e.set('E33',pd(s0.at));
+   e.set('C36',d.projCode||'');e.set('G36',thDate(d.setupDate));e.set('A37',chk(T.PJO.steps[1].checks,d.acctChecks)+'     ผู้ดำเนินการ '+(s1.name||'..................'))}}],
+ PJC:[{label:'Excel — ใบแจ้งเปลี่ยนแปลง / ปิดโครงการ',tpl:'pj.xlsx',sheet:'แจ้งเปลี่ยนแปลง-ปิดโครงการ',fill(e,doc){const d=doc.data,c=T.PJC.calc(d,doc),p=projById(d.projectId),S=sigInfo(doc),s0=S.step(0),s1=S.step(1);
+   const isN=v=>/^-?[\d,]+(\.\d+)?$/.test(String(v??'').trim());
+   e.set('A1',CFG.name);e.set('C5',p?p.name:'');e.set('C6',p?p.code:'');e.set('G6',thDate(d.date));e.set('C7',d.kind||'');e.set('G7',d.reporter||'');
+   const ch=filled(d.changes,['item','old','nw']).slice(0,5);for(let i=0;i<5;i++){const r=ch[i]||{},R=11+i,both=isN(r.old)&&isN(r.nw);
+     e.set('A'+R,r.item||'');e.set('D'+R,isN(r.old)?num(r.old):r.old||'');e.set('F'+R,isN(r.nw)?num(r.nw):r.nw||'');e.set('H'+R,both?num(r.nw)-num(r.old):'',both||!r.item)}
+   e.set('C16',d.reason||'');
+   const rep=d.kind==='รายงานก่อนปิดงบสิ้นปี'||d.kind==='ปิดโครงการ';e.set('C21',rep&&String(d.progress??'')!==''?num(d.progress)/100:'');e.set('G21',thDate(d.closeDate));e.set('C22',rep?c.used:'');e.set('G22',rep?c.remain:'');
+   const ac=filled(d.accruals,['item','amount']).slice(0,3);for(let i=0;i<3;i++){const r=ac[i]||{};e.set('B'+(26+i),r.item||'');e.set('E'+(26+i),r.vendor||'');e.set('G'+(26+i),String(r.amount??'')!==''?num(r.amount):'')}
+   const as=filled(d.assets,['item','cost']).slice(0,4);for(let i=0;i<4;i++){const r=as[i]||{};e.set('B'+(32+i),r.item||'');e.set('E'+(32+i),String(r.qty??'')!==''?num(r.qty):'');e.set('F'+(32+i),String(r.cost??'')!==''?num(r.cost):'');e.set('G'+(32+i),r.loc||'')}
+   e.set('A37','เมื่อปิดโครงการ: '+chk(['แนบรายงานสรุปผล','หยุดรับเอกสารเบิกภายใต้รหัสนี้','ส่งเอกสารค้างทั้งหมดภายใน 15 วัน'],d.closing)+(d.stopDate?' (ตั้งแต่ '+thDate(d.stopDate)+')':''));
+   [['A',{name:d.reporter,at:S.req.at}],['D',s0],['F',s1]].forEach(([col,s])=>{e.set(col+'41',pn(s.name));e.set(col+'43',pd(s.at))})}}]
+};
+function xlOverflow(doc,v){const d=doc.data;const n={PR:filled(d.items,['desc','qty','price']).length,EXP:filled(d.items,['detail','net','receipt']).length,ADV:filled(d.items,['desc','amount']).length,SUB:filled(d.items,['detail','amount']).length,TRV:filled(d.items,['detail','amount']).length}[doc.type];
+  const w=[];if(v.max&&n>v.max)w.push('มี '+n+' รายการ แต่แบบฟอร์ม Excel มี '+v.max+' บรรทัด — รายการที่เกินจะรวมไว้บรรทัดสุดท้าย');
+  if(doc.type==='PJC'&&filled(d.changes,['item','old','nw']).length>5)w.push('แบบฟอร์มรับรายการเปลี่ยนแปลงได้ 5 บรรทัด');
+  if(doc.type==='PJC'&&filled(d.accruals,['item','amount']).length>3)w.push('แบบฟอร์มรับรายการค้างจ่ายได้ 3 บรรทัด');
+  if(doc.type==='PJC'&&filled(d.assets,['item','cost']).length>4)w.push('แบบฟอร์มรับรายการทรัพย์สินได้ 4 บรรทัด');return w}
+async function dlXlsx(doc,i,btn){const v=XL[doc.type][i];btn.disabled=true;const old=btn.textContent;btn.textContent='กำลังสร้างไฟล์…';
+  try{await names((doc.log||[]).map(l=>l.by));const blob=await buildXlsx(v,doc);const sfx=XL[doc.type].length>1?'-แบบ'+(i+1):'';await download(((doc.no||'ร่าง-'+T[doc.type].name)+sfx).replace(/[\\/:*?"<>|]+/g,'-')+'.xlsx',blob)}catch(e){console.error(e);toast('สร้างไฟล์ Excel ไม่สำเร็จ: '+(e.message||e))}finally{btn.disabled=false;btn.textContent=old}}
+
+/* ---------- boot ---------- */
+window.addEventListener('hashchange',()=>{if(DIRTY&&EDIT){clearTimeout(saveT);saveDoc(EDIT).catch(()=>{});DIRTY=false}EDITING=false;EDIT=null;render();scrollTo(0,0)});
+function onDocs(list){DOCS=list;LOADED=true;if(EDITING){stale=true;return}render()}
+try{DOCS=JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){DOCS=[]}try{Object.assign(CFG,JSON.parse(localStorage.getItem(LSC)||'{}'))}catch(e){}
+LOADED=true;applyCfg();render();
+(async()=>{
+  let db=null,user=null;try{[db,user,DLS]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('downloads')])}catch(e){}
+  USER=user;
+  if(user){try{ME=await user.id()}catch(e){}try{const ce=await user.canEdit(),ow=await user.isOwner();CAN_APPROVE=!!(ce||ow);CAN_CFG=CAN_APPROVE}catch(e){}
+    try{const me=await user.me();if(me&&ME)PROF[ME]=me.name||'';if(me&&me.email)ME_EMAIL=me.email}catch(e){}
+    try{const w=await user.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
+  if(!db){$('#banner').innerHTML='<div class="banner">โหมดออฟไลน์ — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น เปิดหน้านี้บน claude.ai ขณะลงชื่อเข้าใช้เพื่อใช้ร่วมกันทั้งทีม</div>';render();return}
+  DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Contributor</div>';render();
+  const tm=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">ยังเชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน</div>';LOADED=true;if(!EDITING)render()},10000);
+  db.doc('config/company').onSnapshot(s=>{if(s.exists){Object.assign(CFG,s.data());applyCfg();if(!EDITING&&route()==='setup')render()}},()=>{});
+  db.collection('docs').onSnapshot(s=>{if(!s.metadata.fromCache){clearTimeout(tm);if(CAN_WRITE)$('#banner').innerHTML=''}onDocs(s.docs.map(x=>({...x.data(),id:x.id})))},e=>{clearTimeout(tm);LOADED=true;$('#banner').innerHTML='<div class="banner">โหลดข้อมูลไม่สำเร็จ ('+esc(e&&e.code)+')</div>';render()});
+})();
+}
+</script>
+</body>
+</html>
