@@ -590,7 +590,7 @@ function rejectDlg(doc){const m=modal(`<h3>ไม่อนุมัติ / ต�
 
 /* ---------- email ---------- */
 const roles=()=>[...new Set(ORDER.flatMap(k=>T[k].steps.map(s=>s.n)))];
-const docLink=doc=>(CFG.appUrl||'').replace(/#.*$/,'')+'#doc-'+doc.id;
+const docLink=doc=>((LOCAL&&/^https?:/.test(location.protocol))?location.href:(CFG.appUrl||'')).replace(/#.*$/,'')+'#doc-'+doc.id;
 function itemLines(doc){const d=doc.data||{};const L={PR:()=>filled(d.items,['desc','qty','price']).map(r=>`${r.desc||''}${r.spec?' ('+r.spec+')':''} × ${r.qty||0} ${r.unit||''} = ${money(num(r.qty)*num(r.price))}`),
   EXP:()=>filled(d.items,['detail','net','receipt']).map(r=>`${thDate(r.payDate,1)} ${r.payee||''} ${r.detail||''} = ${money(num(r.net)+num(r.vat))}`),ADV:()=>filled(d.items,['desc','amount']).map(r=>`${r.desc||''} = ${money(r.amount)}`),
   TRV:()=>{const c=T.TRV.calc(d);return [`ค่าพาหนะ ${money(c.fare)}`,`เบี้ยเลี้ยง ${c.pdd} วัน ${money(c.perDiem)}`,c.fuel?`ค่าน้ำมัน ${money(c.fuel)}`:'',c.toll?`ทางด่วน ${money(c.toll)}`:'',c.other?`อื่น ๆ ${money(c.other)}`:''].filter(Boolean)},
@@ -705,7 +705,7 @@ async function printDlg(doc){await names((doc.log||[]).map(l=>l.by));const html=
   m.querySelectorAll('[data-xl]').forEach(b=>b.onclick=()=>dlXlsx(doc,+b.dataset.xl,b));
   m.querySelector('#pdl').onclick=()=>download((doc.no||'draft-'+T[doc.type].name)+'.html',`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${esc(doc.no||T[doc.type].name)}</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap"><style>body{margin:0;background:#888}@page{size:A4;margin:0}${PRINT_CSS}</style></head><body><div class="ps">${html}</div><script>window.addEventListener('load',function(){setTimeout(function(){window.print()},600)})<\/script></body></html>`)}
 const PRINT_CSS=[...(document.getElementById('mainstyle').sheet?.cssRules||[])].map(r=>r.cssText).filter(t=>/\.ps\b|@media print/.test(t)).join('\n');
-async function download(name,data){if(!DLS){toast('ดาวน์โหลดไม่ได้ในมุมมองนี้ — เปิดหน้านี้บน claude.ai');return}try{await DLS.save({filename:name,data});toast('บันทึกไฟล์แล้ว')}catch(e){if(e&&e.code!=='declined')toast('ดาวน์โหลดไม่สำเร็จ ('+(e&&e.code||'error')+')')}}
+async function download(name,data){if(!DLS){try{const b=data instanceof Blob?data:new Blob([data],{type:/\.csv$/.test(name)?'text/csv;charset=utf-8':/\.html$/.test(name)?'text/html;charset=utf-8':'application/octet-stream'});const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('ดาวน์โหลดแล้ว')}catch(e){toast('ดาวน์โหลดไม่สำเร็จ')}return}try{await DLS.save({filename:name,data});toast('บันทึกไฟล์แล้ว')}catch(e){if(e&&e.code!=='declined')toast('ดาวน์โหลดไม่สำเร็จ ('+(e&&e.code||'error')+')')}}
 
 /* ---------- Excel export: fill the original templates ---------- */
 const XNS='http://schemas.openxmlformats.org/spreadsheetml/2006/main',RNS='http://schemas.openxmlformats.org/package/2006/relationships';
@@ -837,12 +837,12 @@ function onDocs(list){DOCS=list;LOADED=true;if(EDITING){stale=true;return}render
 try{DOCS=JSON.parse(localStorage.getItem(LS)||'[]')}catch(e){DOCS=[]}try{Object.assign(CFG,JSON.parse(localStorage.getItem(LSC)||'{}'))}catch(e){}
 LOADED=true;applyCfg();render();
 (async()=>{
-  let db=null,user=null;try{[db,user,DLS]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('downloads')])}catch(e){}
+  let db=null,user=null;if(typeof claude!=='undefined'&&claude&&claude.use){try{[db,user,DLS]=await Promise.all([claude.use('db'),claude.use('user'),claude.use('downloads')])}catch(e){}}
   USER=user;
   if(user){try{ME=await user.id()}catch(e){}try{const ce=await user.canEdit(),ow=await user.isOwner();CAN_APPROVE=!!(ce||ow);CAN_CFG=CAN_APPROVE}catch(e){}
     try{const me=await user.me();if(me&&ME)PROF[ME]=me.name||'';if(me&&me.email)ME_EMAIL=me.email}catch(e){}
     try{const w=await user.can('data.write');if(w===false)CAN_WRITE=false}catch(e){}}
-  if(!db){$('#banner').innerHTML='<div class="banner">โหมดออฟไลน์ — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น เปิดหน้านี้บน claude.ai ขณะลงชื่อเข้าใช้เพื่อใช้ร่วมกันทั้งทีม</div>';render();return}
+  if(!db){$('#banner').innerHTML='<div class="banner">โหมดเครื่องเดียว — ข้อมูลเก็บในเบราว์เซอร์นี้เท่านั้น คนอื่นจะไม่เห็นเอกสารของคุณ (ใช้ร่วมกันทั้งทีมได้เมื่อเปิดผ่าน claude.ai)</div>';render();return}
   DB=db;LOCAL=false;LOADED=false;DOCS=[];if(!CAN_WRITE)$('#banner').innerHTML='<div class="banner">บัญชีนี้มีสิทธิ์ดูอย่างเดียว (Viewer) — สร้างหรืออนุมัติเอกสารไม่ได้ ขอให้เจ้าของหน้าแชร์เป็น Contributor</div>';render();
   const tm=setTimeout(()=>{$('#banner').innerHTML='<div class="banner">ยังเชื่อมต่อฐานข้อมูลไม่ได้ ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน</div>';LOADED=true;if(!EDITING)render()},10000);
   db.doc('config/company').onSnapshot(s=>{if(s.exists){Object.assign(CFG,s.data());applyCfg();if(!EDITING&&route()==='setup')render()}},()=>{});

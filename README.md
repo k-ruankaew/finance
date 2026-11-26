@@ -10,6 +10,10 @@
 | `xltemplates.js` | แม่แบบ Excel ของบริษัท (base64) ใช้ตอนดาวน์โหลดแบบฟอร์ม .xlsx |
 | `templates/*.xlsx` | แม่แบบ Excel ต้นฉบับ (สร้าง `xltemplates.js` ใหม่จากไฟล์เหล่านี้ได้) |
 
+## เปิดใช้งานบน GitHub Pages
+Settings → Pages → Source: **Deploy from a branch** → Branch: `main` / `/ (root)` → Save
+เว็บจะอยู่ที่ https://k-ruankaew.github.io/finance/
+
 ## การเก็บข้อมูล
 - เมื่อเปิดเป็น Artifact บน claude.ai: ใช้ฐานข้อมูลกลางของ Artifact (`claude.use("db")`), ตัวตนผู้ใช้ (`user`) และการดาวน์โหลด (`downloads`)
 - เมื่อเปิดนอก claude.ai (เช่น GitHub Pages หรือเปิดไฟล์ตรง ๆ): ทำงานใน **โหมดออฟไลน์** ข้อมูลเก็บใน localStorage ของเบราว์เซอร์นั้นเท่านั้น ไม่แชร์ข้ามคน และปุ่มดาวน์โหลดใช้ไม่ได้
